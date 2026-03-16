@@ -1734,6 +1734,13 @@ class FlowEngine:
                     f"{color_anchor} "
                     f"Keep everything else identical."
                 )
+            elif c == "jumpsuit":
+                modifications["print"] = (
+                    f"Extract ONLY the motif/design shapes from the pattern reference image. "
+                    f"Apply them as if screen-printed onto the ENTIRE jumpsuit — both the top half and the bottom half uniformly. "
+                    f"{color_anchor} "
+                    f"Do NOT apply the print to any other clothing piece. Keep everything else identical."
+                )
             else:
                 modifications["print"] = (
                     f"Extract ONLY the motif/design shapes from the pattern reference image. "
