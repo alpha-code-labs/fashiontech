@@ -359,16 +359,12 @@ class FlowEngine:
     # -------------------------
     # DESIGN YOUR OWN (UPDATED)
     # -------------------------
-    def _is_unlimited(self, wa_id: str) -> bool:
-        return wa_id in settings.UNLIMITED_NUMBERS
-
     async def _start_design(self, wa_id: str) -> None:
         # Quick cap check (non-blocking — real enforcement is at generation time)
-        if not self._is_unlimited(wa_id):
-            count = await self.store.get_gen_count(wa_id)
-            if count >= MAX_GENERATIONS:
-                await self._send_generation_limit_reached(wa_id)
-                return
+        count = await self.store.get_gen_count(wa_id)
+        if count >= MAX_GENERATIONS:
+            await self._send_generation_limit_reached(wa_id)
+            return
 
         await self.store.set_fields(
             wa_id,
@@ -799,11 +795,10 @@ class FlowEngine:
 
     async def _generate_design(self, wa_id: str) -> None:
         # Atomic generation cap: reserve a slot or reject
-        if not self._is_unlimited(wa_id):
-            reserved = await self.store.try_reserve_generation(wa_id, MAX_GENERATIONS)
-            if not reserved:
-                await self._send_generation_limit_reached(wa_id)
-                return
+        reserved = await self.store.try_reserve_generation(wa_id, MAX_GENERATIONS)
+        if not reserved:
+            await self._send_generation_limit_reached(wa_id)
+            return
 
         sess = await self.store.get(wa_id) or {}
         brief = DesignBrief(
@@ -868,14 +863,12 @@ class FlowEngine:
             await self.wa.send_text(wa_id, "Here's your design visual 💖")
 
         # Build counter info line
-        designs_used = await self.store.get_gen_count(wa_id) if not self._is_unlimited(wa_id) else 0
-        mods_used = await self.store.get_mod_count(wa_id) if not self._is_unlimited(wa_id) else 0
+        designs_used = await self.store.get_gen_count(wa_id)
+        mods_used = await self.store.get_mod_count(wa_id)
         designs_left = MAX_GENERATIONS - designs_used
         mods_left = MAX_MODIFICATIONS - mods_used
 
-        body = "What do you want to do? ✨"
-        if not self._is_unlimited(wa_id):
-            body += f"\n\n{designs_left} designs remaining · {mods_left} modifications left"
+        body = f"What do you want to do? ✨\n\n{designs_left} designs remaining · {mods_left} modifications left"
 
         await self.wa.send_buttons(
             wa_id,
@@ -1692,11 +1685,10 @@ class FlowEngine:
 
     async def _regenerate_design_with_modifications(self, wa_id: str) -> None:
         # Atomic modification cap: reserve a slot or reject
-        if not self._is_unlimited(wa_id):
-            reserved = await self.store.try_reserve_modification(wa_id, MAX_MODIFICATIONS)
-            if not reserved:
-                await self._send_modification_limit_reached(wa_id)
-                return
+        reserved = await self.store.try_reserve_modification(wa_id, MAX_MODIFICATIONS)
+        if not reserved:
+            await self._send_modification_limit_reached(wa_id)
+            return
 
         sess = await self.store.get(wa_id) or {}
 
@@ -1862,11 +1854,10 @@ class FlowEngine:
 
     async def _start_upload_design(self, wa_id: str) -> None:
         # Quick cap check (non-blocking — real enforcement at generation time)
-        if not self._is_unlimited(wa_id):
-            count = await self.store.get_gen_count(wa_id)
-            if count + 3 > MAX_GENERATIONS:
-                await self._send_generation_limit_reached(wa_id)
-                return
+        count = await self.store.get_gen_count(wa_id)
+        if count + 3 > MAX_GENERATIONS:
+            await self._send_generation_limit_reached(wa_id)
+            return
 
         await self.store.set_fields(
             wa_id,
@@ -1937,16 +1928,15 @@ class FlowEngine:
         )
 
         # Atomic cap: reserve 3 slots before generating
-        if not self._is_unlimited(wa_id):
-            slots_reserved = 0
-            for _ in range(3):
-                if await self.store.try_reserve_generation(wa_id, MAX_GENERATIONS):
-                    slots_reserved += 1
-                else:
-                    break
-            if slots_reserved == 0:
-                await self._send_generation_limit_reached(wa_id)
-                return
+        slots_reserved = 0
+        for _ in range(3):
+            if await self.store.try_reserve_generation(wa_id, MAX_GENERATIONS):
+                slots_reserved += 1
+            else:
+                break
+        if slots_reserved == 0:
+            await self._send_generation_limit_reached(wa_id)
+            return
 
         await self.wa.send_text(
             wa_id,

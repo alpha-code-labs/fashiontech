@@ -36,7 +36,6 @@ jobs:
           PHONE_ID: ${{ secrets.PHONE_NUMBER_ID }}
           GEM_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEM_KEYS: ${{ secrets.GEMINI_API_KEYS }}
-          UNLIM_NUMS: ${{ secrets.UNLIMITED_NUMBERS }}
         run: |
           # Create Container Apps Environment if it doesn't exist
           az containerapp env show \
@@ -74,7 +73,6 @@ jobs:
                           {"name": "whatsapp-token", "value": os.environ["WA_TOKEN"]},
                           {"name": "gemini-api-key", "value": os.environ["GEM_KEY"]},
                           {"name": "gemini-api-keys", "value": os.environ["GEM_KEYS"]},
-                          {"name": "unlimited-numbers", "value": os.environ["UNLIM_NUMS"]},
                       ]
                   },
                   "template": {
@@ -96,7 +94,6 @@ jobs:
                                   {"name": "WHATSAPP_TOKEN", "secretRef": "whatsapp-token"},
                                   {"name": "GEMINI_API_KEY", "secretRef": "gemini-api-key"},
                                   {"name": "GEMINI_API_KEYS", "secretRef": "gemini-api-keys"},
-                                  {"name": "UNLIMITED_NUMBERS", "secretRef": "unlimited-numbers"},
                               ]
                           },
                           {
