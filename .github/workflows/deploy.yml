@@ -1,0 +1,100 @@
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/fashiontech:${{ github.sha }} -t ${{ secrets.ACR_LOGIN_SERVER }}/fashiontech:latest .
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/fashiontech:${{ github.sha }}
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/fashiontech:latest
+
+      - name: Generate deployment YAML
+        run: |
+          cat > deploy.yaml <<YAMLEOF
+          apiVersion: 2021-09-01
+          location: centralindia
+          name: fashiontech-app
+          type: Microsoft.ContainerInstance/containerGroups
+          properties:
+            osType: Linux
+            restartPolicy: Always
+            ipAddress:
+              type: Public
+              dnsNameLabel: drapeai-bot
+              ports:
+                - protocol: TCP
+                  port: 8000
+            imageRegistryCredentials:
+              - server: ${{ secrets.ACR_LOGIN_SERVER }}
+                username: ${{ secrets.ACR_USERNAME }}
+                password: ${{ secrets.ACR_PASSWORD }}
+            containers:
+              - name: fashiontech
+                properties:
+                  image: ${{ secrets.ACR_LOGIN_SERVER }}/fashiontech:${{ github.sha }}
+                  ports:
+                    - port: 8000
+                  resources:
+                    requests:
+                      cpu: 1
+                      memoryInGB: 2
+                  environmentVariables:
+                    - name: REDIS_URL
+                      value: redis://localhost:6379/0
+                    - name: VERIFY_TOKEN
+                      value: empressa_verify_2026
+                    - name: PHONE_NUMBER_ID
+                      value: "${{ secrets.PHONE_NUMBER_ID }}"
+                    - name: GRAPH_API_VERSION
+                      value: v19.0
+                    - name: PUBLIC_BASE_URL
+                      value: http://drapeai-bot.centralindia.azurecontainer.io:8000
+                    - name: SESSION_TIMEOUT_SECONDS
+                      value: "600"
+                    - name: CHECKER_INTERVAL_SECONDS
+                      value: "5"
+                    - name: GEMINI_TEXT_MODEL
+                      value: gemini-2.0-flash
+                    - name: GEMINI_IMAGE_MODEL
+                      value: gemini-2.5-flash-image
+                    - name: WHATSAPP_TOKEN
+                      secureValue: "${{ secrets.WHATSAPP_TOKEN }}"
+                    - name: GEMINI_API_KEY
+                      secureValue: "${{ secrets.GEMINI_API_KEY }}"
+                    - name: GEMINI_API_KEYS
+                      secureValue: "${{ secrets.GEMINI_API_KEYS }}"
+                    - name: UNLIMITED_NUMBERS
+                      secureValue: "${{ secrets.UNLIMITED_NUMBERS }}"
+              - name: redis
+                properties:
+                  image: redis:7-alpine
+                  ports:
+                    - port: 6379
+                  resources:
+                    requests:
+                      cpu: 0.5
+                      memoryInGB: 0.5
+          YAMLEOF
+
+      - name: Deploy to Azure Container Instances
+        run: |
+          az container delete --resource-group fashiontech-rg --name fashiontech-app --yes 2>/dev/null || true
+          az container create --resource-group fashiontech-rg --file deploy.yaml
