@@ -52,6 +52,56 @@ jobs:
             --resource-group fashiontech-rg \
             --yes 2>/dev/null || true
 
+          # --- Persistent storage setup ---
+          STORAGE_ACCOUNT=fashiontechstor
+          STORAGE_RG=fashiontech-rg
+
+          # Create storage account if it doesn't exist
+          az storage account show --name $STORAGE_ACCOUNT --resource-group $STORAGE_RG 2>/dev/null || \
+          az storage account create \
+            --name $STORAGE_ACCOUNT \
+            --resource-group $STORAGE_RG \
+            --location centralindia \
+            --sku Standard_LRS
+
+          # Get storage account key
+          STORAGE_KEY=$(az storage account keys list \
+            --account-name $STORAGE_ACCOUNT \
+            --resource-group $STORAGE_RG \
+            --query "[0].value" -o tsv)
+
+          # Create file shares (idempotent)
+          az storage share-rm create \
+            --storage-account $STORAGE_ACCOUNT \
+            --name sessions \
+            --quota 1 2>/dev/null || true
+
+          az storage share-rm create \
+            --storage-account $STORAGE_ACCOUNT \
+            --name generated-images \
+            --quota 5 2>/dev/null || true
+
+          # Register storage with Container Apps environment
+          az containerapp env storage set \
+            --name fashiontech-env \
+            --resource-group $STORAGE_RG \
+            --storage-name sessionstorage \
+            --azure-file-account-name $STORAGE_ACCOUNT \
+            --azure-file-account-key "$STORAGE_KEY" \
+            --azure-file-share-name sessions \
+            --access-mode ReadWrite 2>/dev/null || true
+
+          az containerapp env storage set \
+            --name fashiontech-env \
+            --resource-group $STORAGE_RG \
+            --storage-name generatedstorage \
+            --azure-file-account-name $STORAGE_ACCOUNT \
+            --azure-file-account-key "$STORAGE_KEY" \
+            --azure-file-share-name generated-images \
+            --access-mode ReadWrite 2>/dev/null || true
+
+          echo "Storage setup complete"
+
           # Generate YAML with Python for proper escaping of secret values
           python3 << 'PYEOF'
           import yaml, os
@@ -76,11 +126,27 @@ jobs:
                       ]
                   },
                   "template": {
+                      "volumes": [
+                          {
+                              "name": "sessions-vol",
+                              "storageName": "sessionstorage",
+                              "storageType": "AzureFile",
+                          },
+                          {
+                              "name": "generated-vol",
+                              "storageName": "generatedstorage",
+                              "storageType": "AzureFile",
+                          },
+                      ],
                       "containers": [
                           {
                               "name": "fashiontech-app",
                               "image": f'{os.environ["ACR_SERVER"]}/fashiontech:{os.environ["IMG_TAG"]}',
                               "resources": {"cpu": 1, "memory": "2Gi"},
+                              "volumeMounts": [
+                                  {"volumeName": "sessions-vol", "mountPath": "/app/app/data/sessions"},
+                                  {"volumeName": "generated-vol", "mountPath": "/app/app/static/generated"},
+                              ],
                               "env": [
                                   {"name": "REDIS_URL", "value": "redis://localhost:6379/0"},
                                   {"name": "PUBLIC_BASE_URL", "value": os.environ.get("APP_FQDN", "https://placeholder")},

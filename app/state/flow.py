@@ -384,6 +384,7 @@ class FlowEngine:
                 "design_print_ref": "",
                 # print library fields
                 "design_print_id": "",
+                "design_print_name": "",
                 "print_return_to": "",
                 "print_page": "0",
                 "print_page_category": "",
@@ -758,7 +759,10 @@ class FlowEngine:
             await self._start_print_selection(wa_id)
             return
 
-        await self.store.set_fields(wa_id, {"design_print_id": print_id})
+        await self.store.set_fields(wa_id, {
+            "design_print_id": print_id,
+            "design_print_name": print_entry.get("name", ""),
+        })
 
         if return_to == "modify":
             # Set up for _regenerate_design_with_modifications
