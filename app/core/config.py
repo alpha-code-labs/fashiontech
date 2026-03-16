@@ -20,7 +20,7 @@ class Settings:
     PUBLIC_BASE_URL: str = _get_env("PUBLIC_BASE_URL", "http://localhost:8000")
 
     # session controls
-    SESSION_TIMEOUT_SECONDS: int = int(_get_env("SESSION_TIMEOUT_SECONDS", "120"))
+    SESSION_TIMEOUT_SECONDS: int = int(_get_env("SESSION_TIMEOUT_SECONDS", "1800"))
     CHECKER_INTERVAL_SECONDS: int = int(_get_env("CHECKER_INTERVAL_SECONDS", "5"))
 
     # gemini

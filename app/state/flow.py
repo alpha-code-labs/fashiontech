@@ -75,7 +75,7 @@ class FlowEngine:
         self.print_service = print_service or PrintService()
 
     async def send_start_menu(self, wa_id: str) -> None:
-        await self.store.set_fields(wa_id, {"state": STATE_START})
+        await self.store.set_fields(wa_id, {"state": STATE_START, "nudge_count": "0"})
         await self.store.touch(wa_id)
         self.logger.log_step(wa_id, STATE_START)
         await self.wa.send_buttons(
@@ -90,13 +90,195 @@ class FlowEngine:
         await self.send_start_menu(wa_id)
 
     async def force_timeout(self, wa_id: str) -> None:
-        # Always log on timeout
-        sess = await self.store.get(wa_id) or {"wa_id": wa_id, "reason": "timeout"}
+        sess = await self.store.get(wa_id)
+        if not sess:
+            return
+
+        nudge_count = int(sess.get("nudge_count", "0"))
+
+        if nudge_count < 2:
+            # Nudge: resend last step, increment counter, reset timer
+            await self.store.set_fields(wa_id, {"nudge_count": str(nudge_count + 1)})
+            await self.store.touch(wa_id)
+            state = sess.get("state", STATE_START)
+            await self._resend_current_step(wa_id, state, sess)
+            return
+
+        # 2 nudges done — silently expire
+        sess["reason"] = "timeout"
         self.logger.log_step(wa_id, "SESSION_TIMEOUT")
         self.logger.write(wa_id, sess)
-
         await self.store.delete(wa_id)
-        await self.send_start_menu(wa_id)
+
+    async def _resend_current_step(self, wa_id: str, state: str, sess: dict) -> None:
+        """Resend the prompt for the user's current step as a nudge."""
+
+        if state == STATE_START:
+            await self.wa.send_buttons(
+                wa_id,
+                "Still there? 💖 What do you want to do today? ✨",
+                [("DESIGN_YOUR_OWN", "Design Your Own")],
+            )
+
+        elif state == STATE_DESIGN_OCCASION:
+            await self.wa.send_list(
+                wa_id,
+                "Still there? 😊 What's the occasion?",
+                "Choose",
+                sections=[{"title": "Occasion", "rows": [
+                    {"id": "D_OCC_PARTY", "title": "Party/Date"},
+                    {"id": "D_OCC_OFFICE", "title": "Office"},
+                    {"id": "D_OCC_CASUAL", "title": "Casual"},
+                    {"id": "D_OCC_VACATION", "title": "Vacation"},
+                ]}],
+            )
+
+        elif state == STATE_DESIGN_CATEGORY:
+            await self.wa.send_list(
+                wa_id,
+                "Still there? 💖 What are we designing?",
+                "Choose",
+                sections=[{"title": "Category", "rows": [
+                    {"id": "D_CAT_DRESS", "title": "Dress"},
+                    {"id": "D_CAT_TOP", "title": "Top"},
+                    {"id": "D_CAT_SKIRT", "title": "Skirt"},
+                    {"id": "D_CAT_PANTS", "title": "Pants"},
+                    {"id": "D_CAT_JUMPSUIT", "title": "Jumpsuit"},
+                    {"id": "D_CAT_SHIRTS", "title": "Shirts"},
+                    {"id": "D_CAT_COORDS", "title": "Coord sets"},
+                ]}],
+            )
+
+        elif state == STATE_DESIGN_FABRIC:
+            await self.wa.send_list(
+                wa_id,
+                "Still there? 😌 What fabric?",
+                "Choose",
+                sections=[{"title": "Fabric", "rows": [
+                    {"id": "D_FAB_COTTON", "title": "Cotton"},
+                    {"id": "D_FAB_VISCOSE_LINEN", "title": "Viscose linen"},
+                    {"id": "D_FAB_COTTON_LINEN", "title": "Cotton linen"},
+                    {"id": "D_FAB_RAYON", "title": "Rayon"},
+                    {"id": "D_FAB_POLYCREPE", "title": "Polycrepe"},
+                    {"id": "D_FAB_DENIM", "title": "Denim"},
+                ]}],
+            )
+
+        elif state == STATE_DESIGN_COLOR:
+            await self.wa.send_list(
+                wa_id,
+                "Still there? ✨ What color?",
+                "Choose",
+                sections=[{"title": "Color", "rows": [
+                    {"id": "D_CLR_BLACK", "title": "Black"},
+                    {"id": "D_CLR_WHITE", "title": "White"},
+                    {"id": "D_CLR_RED", "title": "Red"},
+                    {"id": "D_CLR_NAVY", "title": "Navy Blue"},
+                    {"id": "D_CLR_BEIGE", "title": "Beige"},
+                    {"id": "D_CLR_PINK", "title": "Pink"},
+                    {"id": "D_CLR_GREEN", "title": "Emerald Green"},
+                    {"id": "D_CLR_MAROON", "title": "Maroon"},
+                    {"id": "D_CLR_CUSTOM", "title": "Type my own color"},
+                    {"id": "D_CLR_AI_PICK", "title": "You choose a color"},
+                ]}],
+            )
+
+        elif state == STATE_DESIGN_COLOR_TEXT:
+            await self.wa.send_text(
+                wa_id,
+                "Still there? 💖 Type any color you like!\n"
+                "E.g. coral, sage green, dusty rose…",
+            )
+
+        elif state == STATE_DESIGN_PRINT_CATEGORY:
+            await self._start_print_selection(wa_id, return_to=sess.get("print_return_to", "generate"))
+
+        elif state == STATE_DESIGN_PRINT_PICK:
+            category = sess.get("print_page_category", "")
+            page = int(sess.get("print_page", "0"))
+            if category:
+                await self._send_print_page(wa_id, category, page)
+            else:
+                await self._start_print_selection(wa_id, return_to=sess.get("print_return_to", "generate"))
+
+        elif state == STATE_DESIGN_POST:
+            await self._send_design_post(wa_id)
+
+        elif state == STATE_DESIGN_MODIFY_MENU:
+            await self._send_design_modify_menu(wa_id)
+
+        elif state == STATE_DESIGN_MODIFY_FIELD_CHOICE:
+            # Re-show the field options — handled by resending the modify menu
+            await self._send_design_modify_menu(wa_id)
+
+        elif state == STATE_DESIGN_MODIFY_FIELD_TEXT:
+            field = sess.get("design_mod_field", "")
+            await self.wa.send_text(
+                wa_id,
+                f"Still there? 💖 Please type the {field.replace('_', ' ')} you'd like.",
+            )
+
+        elif state == STATE_DESIGN_MODIFY_WAIT_PATTERN:
+            await self.wa.send_text(
+                wa_id,
+                "Still there? 💖 Please upload your print/pattern image.",
+            )
+
+        elif state == STATE_UPLOAD_WAIT_IMAGE:
+            await self.wa.send_text(
+                wa_id,
+                "Still there? 💖 Please upload a photo of the outfit you like.",
+            )
+
+        elif state == STATE_UPLOAD_PICK_OPTION:
+            await self._send_design_post(wa_id)
+
+        elif state == STATE_BUY_SIZE:
+            await self._send_size_selection(wa_id, intro="Still there? 💖 What's your size?")
+
+        elif state == STATE_BUY_CONFIRM:
+            await self.wa.send_text(
+                wa_id,
+                "Still there? 💖 Please confirm your order above.",
+            )
+
+        elif state == STATE_BUY_NAME:
+            await self.wa.send_text(wa_id, "Still there? 🙂 Please type your name.")
+
+        elif state == STATE_BUY_EMAIL:
+            await self.wa.send_text(wa_id, "Still there? 🙂 Please type your email address.")
+
+        elif state == STATE_CATALOG_OCCASION:
+            await self.wa.send_list(
+                wa_id,
+                "Still there? 😍 What are you shopping for?",
+                "Choose",
+                sections=[{"title": "Occasion", "rows": [
+                    {"id": "OCCASION_PARTY", "title": "Party/Date"},
+                    {"id": "OCCASION_OFFICE", "title": "Office"},
+                    {"id": "OCCASION_CASUAL_VAC", "title": "Vacation / Casual"},
+                ]}],
+            )
+
+        elif state == STATE_CATALOG_BUDGET:
+            await self.wa.send_list(
+                wa_id,
+                "Still there? 💸 What's your budget?",
+                "Choose",
+                sections=[{"title": "Budget", "rows": [
+                    {"id": "BUDGET_1K_2K", "title": "1k to 2k"},
+                    {"id": "BUDGET_2K_3K", "title": "2k to 3k"},
+                    {"id": "BUDGET_3K_4K", "title": "3k to 4k"},
+                    {"id": "BUDGET_4K_5K", "title": "4k to 5k"},
+                ]}],
+            )
+
+        else:
+            # Unknown state — silently expire
+            sess["reason"] = "timeout"
+            self.logger.log_step(wa_id, "SESSION_TIMEOUT")
+            self.logger.write(wa_id, sess)
+            await self.store.delete(wa_id)
 
     # -------------------------
     # START menu handlers
@@ -388,6 +570,7 @@ class FlowEngine:
                 "print_return_to": "",
                 "print_page": "0",
                 "print_page_category": "",
+                "nudge_count": "0",
             },
         )
         await self.store.touch(wa_id)
@@ -1935,6 +2118,7 @@ class FlowEngine:
                 "design_print_ref": "",
                 "design_print_id": "",
                 "print_return_to": "",
+                "nudge_count": "0",
             },
         )
         await self.store.touch(wa_id)
@@ -2181,7 +2365,6 @@ class FlowEngine:
             )
 
             await self.store.delete(wa_id)
-            await self.send_start_menu(wa_id)
             return
 
         if bid == "BUY_CONFIRM_NO":
@@ -2224,4 +2407,3 @@ class FlowEngine:
         await self.wa.send_text(wa_id, "Thank you for your order 💖 Someone will contact you shortly ✨")
 
         await self.store.delete(wa_id)
-        await self.send_start_menu(wa_id)
