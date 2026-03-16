@@ -37,68 +37,98 @@ jobs:
             --resource-group fashiontech-rg \
             --location centralindia
 
-          # Deploy or update Redis container app
-          az containerapp show \
-            --name fashiontech-redis \
-            --resource-group fashiontech-rg 2>/dev/null || \
-          az containerapp create \
+          # Delete the old separate Redis container app if it exists
+          az containerapp delete \
             --name fashiontech-redis \
             --resource-group fashiontech-rg \
-            --environment fashiontech-env \
-            --image redis:7-alpine \
-            --target-port 6379 \
-            --ingress internal \
-            --min-replicas 1 \
-            --max-replicas 1 \
-            --cpu 0.25 \
-            --memory 0.5Gi
+            --yes 2>/dev/null || true
 
-          # Get Redis internal FQDN
-          REDIS_FQDN=$(az containerapp show \
-            --name fashiontech-redis \
-            --resource-group fashiontech-rg \
-            --query "properties.configuration.ingress.fqdn" -o tsv)
+          # Generate YAML template with Redis as sidecar container
+          cat > /tmp/containerapp.yaml <<YAMLEOF
+          properties:
+            configuration:
+              ingress:
+                external: true
+                targetPort: 8000
+              registries:
+                - server: ${{ secrets.ACR_LOGIN_SERVER }}
+                  username: ${{ secrets.ACR_USERNAME }}
+                  passwordSecretRef: acr-password
+              secrets:
+                - name: acr-password
+                  value: "${{ secrets.ACR_PASSWORD }}"
+                - name: whatsapp-token
+                  value: "${{ secrets.WHATSAPP_TOKEN }}"
+                - name: gemini-api-key
+                  value: "${{ secrets.GEMINI_API_KEY }}"
+                - name: gemini-api-keys
+                  value: "${{ secrets.GEMINI_API_KEYS }}"
+                - name: unlimited-numbers
+                  value: "${{ secrets.UNLIMITED_NUMBERS }}"
+            template:
+              containers:
+                - name: fashiontech-app
+                  image: ${{ secrets.ACR_LOGIN_SERVER }}/fashiontech:${{ github.sha }}
+                  resources:
+                    cpu: 1
+                    memory: 2Gi
+                  env:
+                    - name: REDIS_URL
+                      value: redis://localhost:6379/0
+                    - name: VERIFY_TOKEN
+                      value: empressa_verify_2026
+                    - name: PHONE_NUMBER_ID
+                      value: "${{ secrets.PHONE_NUMBER_ID }}"
+                    - name: GRAPH_API_VERSION
+                      value: v19.0
+                    - name: SESSION_TIMEOUT_SECONDS
+                      value: "600"
+                    - name: CHECKER_INTERVAL_SECONDS
+                      value: "5"
+                    - name: GEMINI_TEXT_MODEL
+                      value: gemini-2.0-flash
+                    - name: GEMINI_IMAGE_MODEL
+                      value: gemini-2.5-flash-image
+                    - name: WHATSAPP_TOKEN
+                      secretRef: whatsapp-token
+                    - name: GEMINI_API_KEY
+                      secretRef: gemini-api-key
+                    - name: GEMINI_API_KEYS
+                      secretRef: gemini-api-keys
+                    - name: UNLIMITED_NUMBERS
+                      secretRef: unlimited-numbers
+                - name: redis
+                  image: redis:7-alpine
+                  resources:
+                    cpu: 0.25
+                    memory: 0.5Gi
+                  command:
+                    - redis-server
+                    - --save
+                    - ""
+                    - --appendonly
+                    - "no"
+              scale:
+                minReplicas: 1
+                maxReplicas: 3
+          YAMLEOF
 
-          # Deploy or update the main app
-          az containerapp show \
-            --name fashiontech-app \
-            --resource-group fashiontech-rg 2>/dev/null && \
-          az containerapp update \
-            --name fashiontech-app \
-            --resource-group fashiontech-rg \
-            --image ${{ secrets.ACR_LOGIN_SERVER }}/fashiontech:${{ github.sha }} || \
-          az containerapp create \
-            --name fashiontech-app \
-            --resource-group fashiontech-rg \
-            --environment fashiontech-env \
-            --image ${{ secrets.ACR_LOGIN_SERVER }}/fashiontech:${{ github.sha }} \
-            --registry-server ${{ secrets.ACR_LOGIN_SERVER }} \
-            --registry-username ${{ secrets.ACR_USERNAME }} \
-            --registry-password ${{ secrets.ACR_PASSWORD }} \
-            --target-port 8000 \
-            --ingress external \
-            --min-replicas 1 \
-            --max-replicas 3 \
-            --cpu 1 \
-            --memory 2Gi \
-            --env-vars \
-              REDIS_URL=redis://${REDIS_FQDN}:6379/0 \
-              VERIFY_TOKEN=empressa_verify_2026 \
-              PHONE_NUMBER_ID=${{ secrets.PHONE_NUMBER_ID }} \
-              GRAPH_API_VERSION=v19.0 \
-              SESSION_TIMEOUT_SECONDS=600 \
-              CHECKER_INTERVAL_SECONDS=5 \
-              GEMINI_TEXT_MODEL=gemini-2.0-flash \
-              GEMINI_IMAGE_MODEL=gemini-2.5-flash-image \
-              WHATSAPP_TOKEN=secretref:whatsapp-token \
-              GEMINI_API_KEY=secretref:gemini-api-key \
-              GEMINI_API_KEYS=secretref:gemini-api-keys \
-              UNLIMITED_NUMBERS=secretref:unlimited-numbers \
-            --secrets \
-              whatsapp-token=${{ secrets.WHATSAPP_TOKEN }} \
-              gemini-api-key=${{ secrets.GEMINI_API_KEY }} \
-              gemini-api-keys=${{ secrets.GEMINI_API_KEYS }} \
-              unlimited-numbers=${{ secrets.UNLIMITED_NUMBERS }}
+          # Remove leading spaces from YAML (heredoc indentation)
+          sed -i 's/^          //' /tmp/containerapp.yaml
+
+          # Check if app exists — update or create
+          if az containerapp show --name fashiontech-app --resource-group fashiontech-rg 2>/dev/null; then
+            az containerapp update \
+              --name fashiontech-app \
+              --resource-group fashiontech-rg \
+              --yaml /tmp/containerapp.yaml
+          else
+            az containerapp create \
+              --name fashiontech-app \
+              --resource-group fashiontech-rg \
+              --environment fashiontech-env \
+              --yaml /tmp/containerapp.yaml
+          fi
 
           # Get the app URL and print it
           APP_URL=$(az containerapp show \
