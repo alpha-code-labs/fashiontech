@@ -1565,9 +1565,20 @@ class FlowEngine:
             if not vv:
                 continue
 
-            # handle colors
-            if kk in {"color", "color_top", "color_bottom"}:
-                out[kk] = f"Set color to {vv}."
+            # handle colors — be explicit about which part for multi-part garments
+            if kk == "color":
+                if c == "jumpsuit":
+                    out[kk] = f"Change the color of the ENTIRE jumpsuit (both top and bottom) to {vv}."
+                elif c == "coord sets":
+                    out[kk] = f"Change the color of BOTH pieces of the coord set to {vv}."
+                else:
+                    out[kk] = f"Set color to {vv}."
+                continue
+            if kk == "color_top":
+                out[kk] = f"Change the TOP piece color to {vv}. Keep the bottom piece color unchanged."
+                continue
+            if kk == "color_bottom":
+                out[kk] = f"Change the BOTTOM piece color to {vv}. Keep the top piece color unchanged."
                 continue
 
             # general phrasing: "Set <field> to <value>"
@@ -1678,7 +1689,40 @@ class FlowEngine:
                 out[kk] = f"Add a {vv} detail to the FRONT of the garment. Keep the back unchanged. Keep everything else identical."
                 continue
 
-            # default
+            # --- Multi-part garment awareness ---
+            # Jumpsuit is ONE piece — modifications apply to the entire garment
+            if c == "jumpsuit":
+                if kk == "fit":
+                    out[kk] = f"Change the fit of the ENTIRE jumpsuit (both top and bottom) to {vv}. Keep everything else identical."
+                elif kk == "neckline":
+                    out[kk] = f"Change the neckline of the jumpsuit to {vv}. Keep the rest of the jumpsuit identical."
+                elif kk == "sleeves":
+                    out[kk] = f"Change the sleeves of the jumpsuit to {vv}. Keep the rest of the jumpsuit identical."
+                elif kk == "leg_fit":
+                    out[kk] = f"Change the leg fit of the jumpsuit to {vv} legs. Keep the top half and everything else identical."
+                elif kk == "waist_definition":
+                    out[kk] = f"Change the waist definition of the jumpsuit to {vv}. Keep everything else identical."
+                else:
+                    out[kk] = f"Set {label} to {vv} on the jumpsuit. Keep everything else identical."
+                continue
+
+            # Coord sets — fields prefixed with top_/bottom_ target specific pieces
+            if c == "coord sets":
+                if kk.startswith("top_"):
+                    piece_field = kk.replace("top_", "")
+                    out[kk] = f"Change the TOP piece's {piece_field} to {vv}. Keep the bottom piece unchanged. Keep everything else identical."
+                elif kk.startswith("bottom_"):
+                    piece_field = kk.replace("bottom_", "")
+                    out[kk] = f"Change the BOTTOM piece's {piece_field} to {vv}. Keep the top piece unchanged. Keep everything else identical."
+                elif kk == "color_top":
+                    out[kk] = f"Change the TOP piece color to {vv}. Keep the bottom piece color unchanged."
+                elif kk == "color_bottom":
+                    out[kk] = f"Change the BOTTOM piece color to {vv}. Keep the top piece color unchanged."
+                else:
+                    out[kk] = f"Set {label} to {vv} on BOTH pieces of the coord set. Keep everything else identical."
+                continue
+
+            # default — single-piece garments
             out[kk] = f"Set {label} to {vv}. Keep everything else identical."
 
         return out
