@@ -85,6 +85,7 @@ jobs:
                               "resources": {"cpu": 1, "memory": "2Gi"},
                               "env": [
                                   {"name": "REDIS_URL", "value": "redis://localhost:6379/0"},
+                                  {"name": "PUBLIC_BASE_URL", "value": os.environ.get("APP_FQDN", "https://placeholder")},
                                   {"name": "VERIFY_TOKEN", "value": "empressa_verify_2026"},
                                   {"name": "PHONE_NUMBER_ID", "value": os.environ["PHONE_ID"]},
                                   {"name": "GRAPH_API_VERSION", "value": "v19.0"},
@@ -135,10 +136,29 @@ jobs:
               --yaml /tmp/containerapp.yaml
           fi
 
-          # Get the app URL and print it
-          APP_URL=$(az containerapp show \
+          # Get the app FQDN and set PUBLIC_BASE_URL
+          APP_FQDN=$(az containerapp show \
             --name fashiontech-app \
             --resource-group fashiontech-rg \
             --query "properties.configuration.ingress.fqdn" -o tsv)
-          echo "App deployed at: https://${APP_URL}"
-          echo "Webhook URL: https://${APP_URL}/webhook"
+
+          # Re-generate YAML with correct PUBLIC_BASE_URL and re-apply
+          APP_FQDN="https://${APP_FQDN}" python3 << 'PYEOF2'
+          import yaml, os
+          with open("/tmp/containerapp.yaml") as f:
+              data = yaml.safe_load(f)
+          for env in data["properties"]["template"]["containers"][0]["env"]:
+              if env["name"] == "PUBLIC_BASE_URL":
+                  env["value"] = os.environ["APP_FQDN"]
+                  break
+          with open("/tmp/containerapp.yaml", "w") as f:
+              yaml.dump(data, f, default_flow_style=False)
+          PYEOF2
+
+          az containerapp update \
+            --name fashiontech-app \
+            --resource-group fashiontech-rg \
+            --yaml /tmp/containerapp.yaml
+
+          echo "App deployed at: https://${APP_FQDN}"
+          echo "Webhook URL: https://${APP_FQDN}/webhook"
