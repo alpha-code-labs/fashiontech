@@ -70,16 +70,18 @@ jobs:
             --resource-group $STORAGE_RG \
             --query "[0].value" -o tsv)
 
-          # Create file shares (idempotent)
+          # Create file shares (idempotent — no-ops if they already exist)
           az storage share-rm create \
             --storage-account $STORAGE_ACCOUNT \
+            --resource-group $STORAGE_RG \
             --name sessions \
-            --quota 1 2>/dev/null || true
+            --quota 1 --only-show-errors || true
 
           az storage share-rm create \
             --storage-account $STORAGE_ACCOUNT \
+            --resource-group $STORAGE_RG \
             --name generated-images \
-            --quota 5 2>/dev/null || true
+            --quota 5 --only-show-errors || true
 
           # Register storage with Container Apps environment
           az containerapp env storage set \
@@ -89,7 +91,7 @@ jobs:
             --azure-file-account-name $STORAGE_ACCOUNT \
             --azure-file-account-key "$STORAGE_KEY" \
             --azure-file-share-name sessions \
-            --access-mode ReadWrite 2>/dev/null || true
+            --access-mode ReadWrite --only-show-errors || true
 
           az containerapp env storage set \
             --name fashiontech-env \
@@ -98,7 +100,7 @@ jobs:
             --azure-file-account-name $STORAGE_ACCOUNT \
             --azure-file-account-key "$STORAGE_KEY" \
             --azure-file-share-name generated-images \
-            --access-mode ReadWrite 2>/dev/null || true
+            --access-mode ReadWrite --only-show-errors || true
 
           echo "Storage setup complete"
 
