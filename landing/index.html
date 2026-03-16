@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drape AI — Design Your Outfit on WhatsApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --purple-abyss: #0D0118;
+    --purple-deep: #1A0533;
+    --purple-core: #4A0E78;
+    --purple-rich: #6B21A8;
+    --purple-vibrant: #7C3AED;
+    --purple-mid: #8B5CF6;
+    --purple-light: #A78BFA;
+    --purple-soft: #C4B5FD;
+    --purple-wash: #EDE9FE;
+    --purple-faint: #F5F3FF;
+    --gold: #D4AF37;
+    --gold-bright: #E8C84A;
+    --gold-light: #F5E6A3;
+    --gold-faint: rgba(212, 175, 55, 0.08);
+    --white: #FFFFFF;
+    --off-white: #FAFAFE;
+    --text-dark: #1A0533;
+    --text-mid: #4A3660;
+    --text-light: #8878A0;
+    --whatsapp: #25D366;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--off-white);
+    color: var(--text-dark);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-60px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(60px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes glow {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+  }
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.15s; }
+  .reveal-delay-2 { transition-delay: 0.3s; }
+  .reveal-delay-3 { transition-delay: 0.45s; }
+
+  /* ─── HERO SECTION ─── */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    position: relative;
+    background: var(--purple-abyss);
+    overflow: hidden;
+  }
+
+  /* Ambient glow orbs */
+  .hero::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.2) 0%, transparent 70%);
+    top: -10%;
+    left: -10%;
+    animation: glow 6s ease-in-out infinite;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+    bottom: -15%;
+    right: 10%;
+    animation: glow 8s ease-in-out infinite 2s;
+  }
+
+  .hero-left {
+    padding: 80px 60px 80px 80px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-brand {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--purple-light);
+    margin-bottom: 48px;
+    animation: fadeIn 1s ease-out;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50px;
+    padding: 10px 24px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gold-light);
+    letter-spacing: 0.5px;
+    margin-bottom: 40px;
+    animation: fadeUp 0.8s ease-out 0.3s both;
+  }
+
+  .hero-badge-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--gold);
+    border-radius: 50%;
+    position: relative;
+  }
+  .hero-badge-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    animation: pulse-ring 2s ease-out infinite;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(40px, 5.5vw, 68px);
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.1;
+    margin-bottom: 28px;
+    animation: slideInLeft 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+  }
+
+  .hero h1 .line {
+    display: block;
+  }
+
+  .hero h1 .accent {
+    background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-bright) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero h1 .italic {
+    font-style: italic;
+    font-weight: 600;
+    color: var(--purple-light);
+    -webkit-text-fill-color: var(--purple-light);
+  }
+
+  .hero-desc {
+    font-size: 17px;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.8;
+    max-width: 420px;
+    margin-bottom: 44px;
+    font-weight: 300;
+    animation: fadeUp 0.8s ease-out 0.7s both;
+  }
+
+  .hero-cta-group {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    animation: fadeUp 0.8s ease-out 0.9s both;
+  }
+
+  .cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-bright) 100%);
+    color: var(--purple-deep);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 16px 32px;
+    border-radius: 50px;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 24px rgba(212, 175, 55, 0.25), 0 0 60px rgba(212, 175, 55, 0.1);
+  }
+  .cta-primary:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 32px rgba(212, 175, 55, 0.35), 0 0 80px rgba(212, 175, 55, 0.15);
+  }
+  .cta-primary svg {
+    transition: transform 0.3s ease;
+  }
+  .cta-primary:hover svg {
+    transform: translateX(4px);
+  }
+
+  .cta-secondary {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.3s ease;
+  }
+  .cta-secondary:hover {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Hero image */
+  .hero-right {
+    position: relative;
+    height: 100vh;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-image-container {
+    position: relative;
+    width: 420px;
+    animation: slideInRight 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+  }
+
+  .hero-image {
+    width: 100%;
+    border-radius: 24px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 0 120px rgba(124, 58, 237, 0.15);
+  }
+
+  .hero-image-glow {
+    position: absolute;
+    inset: -2px;
+    border-radius: 26px;
+    background: linear-gradient(135deg, var(--purple-vibrant), var(--gold), var(--purple-mid));
+    z-index: -1;
+    opacity: 0.5;
+    filter: blur(20px);
+    animation: glow 4s ease-in-out infinite;
+  }
+
+  .hero-float-tag {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 14px 20px;
+    color: var(--white);
+    font-size: 13px;
+    font-weight: 500;
+    animation: float 5s ease-in-out infinite;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  .hero-float-tag.tag-1 {
+    top: 12%;
+    right: -24px;
+    animation-delay: 0s;
+  }
+  .hero-float-tag.tag-2 {
+    bottom: 20%;
+    left: -32px;
+    animation-delay: 1.5s;
+  }
+
+  .tag-emoji {
+    font-size: 18px;
+    margin-right: 6px;
+  }
+
+  /* ─── SOCIAL PROOF BAR ─── */
+  .social-proof {
+    background: var(--purple-deep);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+
+  .proof-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  .proof-number {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  /* ─── GALLERY SECTION ─── */
+  .gallery {
+    padding: 100px 24px;
+    background: var(--white);
+  }
+
+  .gallery-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--purple-vibrant);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .gallery h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    color: var(--text-dark);
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .gallery-subtitle {
+    font-size: 17px;
+    color: var(--text-light);
+    text-align: center;
+    max-width: 500px;
+    margin: 0 auto 64px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* Editorial asymmetric grid */
+  .gallery-editorial {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .gallery-item {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .gallery-item:hover img {
+    transform: scale(1.06);
+  }
+
+  /* Item 1: tall left */
+  .gallery-item:nth-child(1) {
+    grid-row: 1 / 3;
+    aspect-ratio: auto;
+    min-height: 560px;
+  }
+
+  /* Item 2: top right */
+  .gallery-item:nth-child(2) {
+    aspect-ratio: 4/5;
+  }
+
+  /* Item 3: top far right */
+  .gallery-item:nth-child(3) {
+    aspect-ratio: 4/5;
+  }
+
+  /* Item 4: bottom spanning 2 cols */
+  .gallery-item:nth-child(4) {
+    grid-column: 2 / 4;
+    aspect-ratio: 16/9;
+  }
+
+  .gallery-item-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(26, 5, 51, 0.8) 0%, rgba(26, 5, 51, 0) 50%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    display: flex;
+    align-items: flex-end;
+    padding: 24px;
+  }
+
+  .gallery-item:hover .gallery-item-overlay {
+    opacity: 1;
+  }
+
+  .gallery-item-info {
+    color: var(--white);
+  }
+
+  .gallery-item-info h4 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .gallery-item-info p {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+  }
+
+  .gallery-ai-badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--white);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  /* ─── HOW IT WORKS ─── */
+  .how-it-works {
+    padding: 100px 24px;
+    background: linear-gradient(180deg, var(--purple-faint) 0%, var(--white) 100%);
+  }
+
+  .how-it-works-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .how-it-works h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    color: var(--text-dark);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .how-subtitle {
+    font-size: 17px;
+    color: var(--text-light);
+    text-align: center;
+    max-width: 460px;
+    margin: 0 auto 72px;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  .steps-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px;
+    position: relative;
+  }
+
+  .steps-container::before {
+    content: '';
+    position: absolute;
+    top: 48px;
+    left: 16%;
+    right: 16%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--purple-soft), var(--purple-vibrant), var(--purple-soft), transparent);
+    z-index: 0;
+  }
+
+  .step-card {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-icon-wrap {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 2px solid var(--purple-wash);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    position: relative;
+    transition: all 0.4s ease;
+  }
+
+  .step-card:hover .step-icon-wrap {
+    border-color: var(--purple-vibrant);
+    box-shadow: 0 8px 40px rgba(124, 58, 237, 0.15);
+    transform: translateY(-4px);
+  }
+
+  .step-icon-inner {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple-vibrant) 0%, var(--purple-core) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+  }
+
+  .step-icon-inner svg {
+    width: 28px;
+    height: 28px;
+    stroke: var(--white);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .step-card h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 10px;
+  }
+
+  .step-card p {
+    font-size: 15px;
+    color: var(--text-light);
+    line-height: 1.7;
+    max-width: 260px;
+    margin: 0 auto;
+    font-weight: 300;
+  }
+
+  /* ─── WHATSAPP SECTION ─── */
+  .whatsapp-section {
+    padding: 100px 24px;
+    background: var(--white);
+  }
+
+  .whatsapp-card {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: linear-gradient(150deg, var(--purple-abyss) 0%, var(--purple-deep) 40%, var(--purple-core) 100%);
+    border-radius: 32px;
+    padding: 72px 64px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .whatsapp-card::before {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
+    top: -20%;
+    right: -10%;
+    animation: glow 6s ease-in-out infinite;
+  }
+
+  .whatsapp-card::after {
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, transparent 70%);
+    bottom: -15%;
+    left: 10%;
+  }
+
+  .whatsapp-text {
+    position: relative;
+    z-index: 2;
+  }
+
+  .whatsapp-text .section-label {
+    text-align: left;
+    color: var(--purple-light);
+    margin-bottom: 20px;
+  }
+
+  .whatsapp-text h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(28px, 4vw, 38px);
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.2;
+    margin-bottom: 20px;
+  }
+
+  .whatsapp-text p {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.7;
+    margin-bottom: 32px;
+    font-weight: 300;
+  }
+
+  .whatsapp-features {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .wf-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 15px;
+    font-weight: 400;
+  }
+
+  .wf-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .wf-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--purple-light);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Phone mockup */
+  .whatsapp-phone {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+  }
+
+  .phone-frame {
+    width: 280px;
+    background: #1A1A2E;
+    border-radius: 36px;
+    padding: 12px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .phone-screen {
+    background: #0B141A;
+    border-radius: 26px;
+    overflow: hidden;
+  }
+
+  .phone-header {
+    background: #1F2C33;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .phone-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple-vibrant), var(--gold));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .phone-header-text {
+    flex: 1;
+  }
+
+  .phone-header-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #E9EDEF;
+  }
+
+  .phone-header-status {
+    font-size: 11px;
+    color: #8696A0;
+  }
+
+  .phone-chat {
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 340px;
+  }
+
+  .chat-bubble {
+    max-width: 85%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .chat-bot {
+    background: #1F2C33;
+    color: #E9EDEF;
+    align-self: flex-start;
+    border-top-left-radius: 0;
+  }
+
+  .chat-user {
+    background: #005C4B;
+    color: #E9EDEF;
+    align-self: flex-end;
+    border-top-right-radius: 0;
+  }
+
+  .chat-bubble .bold {
+    font-weight: 600;
+  }
+
+  .chat-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .chat-option {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #8BB8F8;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 14px;
+  }
+
+  .chat-option.selected {
+    background: rgba(0, 92, 75, 0.3);
+    border-color: #005C4B;
+    color: #25D366;
+  }
+
+  .chat-image-preview {
+    width: 100%;
+    aspect-ratio: 3/4;
+    background: linear-gradient(135deg, var(--purple-core), var(--purple-vibrant));
+    border-radius: 8px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    overflow: hidden;
+  }
+
+  .chat-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .chat-typing {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    align-self: flex-start;
+  }
+
+  .typing-dot {
+    width: 6px;
+    height: 6px;
+    background: #8696A0;
+    border-radius: 50%;
+    animation: typing-bounce 1.4s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* ─── CLOSING CTA ─── */
+  .closing {
+    padding: 100px 24px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--off-white) 0%, var(--purple-faint) 100%);
+  }
+
+  .closing-inner {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .closing h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  .closing p {
+    font-size: 17px;
+    color: var(--text-light);
+    line-height: 1.7;
+    font-weight: 300;
+    margin-bottom: 40px;
+  }
+
+  .closing .cta-primary {
+    background: linear-gradient(135deg, var(--purple-vibrant) 0%, var(--purple-rich) 100%);
+    color: var(--white);
+    box-shadow: 0 4px 24px rgba(124, 58, 237, 0.25), 0 0 60px rgba(124, 58, 237, 0.1);
+  }
+  .closing .cta-primary:hover {
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.35), 0 0 80px rgba(124, 58, 237, 0.15);
+  }
+
+  /* ─── FOOTER ─── */
+  .footer {
+    padding: 48px 24px;
+    text-align: center;
+    background: var(--purple-abyss);
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .footer-brand {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .footer p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 300;
+  }
+
+  .footer-line {
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--purple-vibrant), var(--gold));
+    margin: 16px auto 0;
+    border-radius: 2px;
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: 1fr;
+      min-height: auto;
+    }
+
+    .hero-left {
+      padding: 100px 32px 48px;
+      text-align: center;
+    }
+
+    .hero-brand {
+      margin-bottom: 32px;
+    }
+
+    .hero-desc {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-cta-group {
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-right {
+      height: auto;
+      padding: 0 32px 64px;
+    }
+
+    .hero-image-container {
+      width: 320px;
+    }
+
+    .hero-float-tag.tag-1 {
+      right: -8px;
+    }
+    .hero-float-tag.tag-2 {
+      left: -8px;
+    }
+
+    .social-proof {
+      gap: 20px 32px;
+    }
+
+    .gallery-editorial {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .gallery-item:nth-child(1) {
+      grid-row: auto;
+      min-height: auto;
+      aspect-ratio: 3/4;
+    }
+
+    .gallery-item:nth-child(4) {
+      grid-column: 1 / 3;
+    }
+
+    .steps-container {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+
+    .steps-container::before {
+      display: none;
+    }
+
+    .whatsapp-card {
+      grid-template-columns: 1fr;
+      padding: 48px 32px;
+    }
+
+    .whatsapp-text .section-label {
+      text-align: center;
+    }
+
+    .whatsapp-text h2,
+    .whatsapp-text p {
+      text-align: center;
+    }
+
+    .whatsapp-features {
+      align-items: center;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .hero-left {
+      padding: 72px 20px 36px;
+    }
+
+    .hero-brand {
+      font-size: 14px;
+      letter-spacing: 3px;
+      margin-bottom: 24px;
+    }
+
+    .hero-badge {
+      font-size: 12px;
+      padding: 8px 18px;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: 34px;
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      margin-bottom: 32px;
+    }
+
+    .hero-cta-group {
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .cta-primary {
+      width: 100%;
+      justify-content: center;
+      padding: 16px 28px;
+    }
+
+    .hero-right {
+      padding: 0 20px 56px;
+    }
+
+    .hero-image-container {
+      width: min(280px, 85vw);
+    }
+
+    .hero-float-tag {
+      display: none;
+    }
+
+    /* Social proof: 2x2 grid on mobile */
+    .social-proof {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 24px 20px;
+    }
+
+    .proof-item {
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    .proof-number {
+      font-size: 20px;
+    }
+
+    /* Gallery */
+    .gallery {
+      padding: 64px 16px;
+    }
+
+    .gallery h2 {
+      font-size: 28px;
+    }
+
+    .gallery-subtitle {
+      font-size: 15px;
+      margin-bottom: 40px;
+    }
+
+    .gallery-editorial {
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .gallery-item {
+      border-radius: 14px;
+    }
+
+    .gallery-ai-badge {
+      font-size: 9px;
+      padding: 4px 10px;
+      top: 10px;
+      left: 10px;
+    }
+
+    /* On mobile, always show overlay labels (no hover on touch) */
+    .gallery-item-overlay {
+      opacity: 1;
+      background: linear-gradient(to top, rgba(26, 5, 51, 0.7) 0%, transparent 60%);
+      padding: 14px;
+    }
+
+    .gallery-item-info h4 {
+      font-size: 14px;
+    }
+
+    .gallery-item-info p {
+      font-size: 11px;
+    }
+
+    /* How it works */
+    .how-it-works {
+      padding: 64px 20px;
+    }
+
+    .how-it-works h2 {
+      font-size: 28px;
+    }
+
+    .how-subtitle {
+      font-size: 15px;
+      margin-bottom: 48px;
+    }
+
+    .steps-container {
+      gap: 40px;
+    }
+
+    .step-icon-wrap {
+      width: 80px;
+      height: 80px;
+    }
+
+    .step-icon-inner {
+      width: 56px;
+      height: 56px;
+    }
+
+    .step-icon-inner svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .step-card h3 {
+      font-size: 18px;
+    }
+
+    .step-card p {
+      font-size: 14px;
+    }
+
+    /* WhatsApp section */
+    .whatsapp-section {
+      padding: 64px 16px;
+    }
+
+    .whatsapp-card {
+      border-radius: 24px;
+      padding: 36px 20px;
+      gap: 36px;
+    }
+
+    .whatsapp-text h2 {
+      font-size: 26px;
+    }
+
+    .whatsapp-text p {
+      font-size: 15px;
+    }
+
+    .wf-item {
+      font-size: 14px;
+    }
+
+    .wf-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+    }
+
+    .wf-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .phone-frame {
+      width: min(260px, 80vw);
+    }
+
+    .chat-bubble {
+      font-size: 12px;
+    }
+
+    .chat-option {
+      font-size: 11px;
+    }
+
+    /* Closing */
+    .closing {
+      padding: 64px 20px;
+    }
+
+    .closing h2 {
+      font-size: 28px;
+    }
+
+    .closing p {
+      font-size: 15px;
+    }
+  }
+
+  /* Extra small devices (iPhone SE, etc.) */
+  @media (max-width: 380px) {
+    .hero-left {
+      padding: 64px 16px 32px;
+    }
+
+    .hero h1 {
+      font-size: 30px;
+    }
+
+    .hero-desc {
+      font-size: 14px;
+    }
+
+    .cta-primary {
+      font-size: 14px;
+      padding: 14px 24px;
+    }
+
+    .hero-image-container {
+      width: 240px;
+    }
+
+    .social-proof {
+      gap: 12px;
+      padding: 20px 16px;
+    }
+
+    .proof-number {
+      font-size: 18px;
+    }
+
+    .proof-item {
+      font-size: 12px;
+      gap: 6px;
+    }
+
+    .gallery-editorial {
+      gap: 8px;
+    }
+
+    .phone-frame {
+      width: 230px;
+    }
+
+    .whatsapp-card {
+      padding: 32px 16px;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ─── HERO ─── -->
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-brand">Drape AI</div>
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Early access opening soon
+      </div>
+      <h1>
+        <span class="line">You're <span class="accent">in.</span></span>
+        <span class="line italic">Your turn is coming.</span>
+      </h1>
+      <p class="hero-desc">We're opening WhatsApp access in small batches. Keep an eye on your messages — you'll be designing your first outfit soon.</p>
+      <div class="hero-cta-group">
+        <a href="#gallery" class="cta-primary">
+          See what AI designs
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="#how" class="cta-secondary">
+          How it works
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-image-container">
+        <div class="hero-image-glow"></div>
+        <img src="images/outfit-1.png" alt="AI-designed red cotton midi dress with puff sleeves" class="hero-image">
+        <div class="hero-float-tag tag-1">
+          <span class="tag-emoji">&#10024;</span> AI designed in 60s
+        </div>
+        <div class="hero-float-tag tag-2">
+          <span class="tag-emoji">&#128241;</span> Made on WhatsApp
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SOCIAL PROOF BAR ─── -->
+  <div class="social-proof">
+    <div class="proof-item">
+      <span class="proof-number">60s</span>
+      <span>per design</span>
+    </div>
+    <div class="proof-item">
+      <span class="proof-number">4</span>
+      <span>taps to create</span>
+    </div>
+    <div class="proof-item">
+      <span class="proof-number">100%</span>
+      <span>custom to you</span>
+    </div>
+    <div class="proof-item">
+      <span class="proof-number">0</span>
+      <span>apps to download</span>
+    </div>
+  </div>
+
+  <!-- ─── GALLERY ─── -->
+  <section class="gallery" id="gallery">
+    <div class="gallery-inner">
+      <div class="section-label reveal">AI-Designed Outfits</div>
+      <h2 class="reveal">A taste of what's coming</h2>
+      <p class="gallery-subtitle reveal">Every outfit here was designed by AI in under 60 seconds. No designer. No studio. Just you and a conversation.</p>
+      <div class="gallery-editorial">
+        <div class="gallery-item reveal">
+          <img src="images/outfit-1.png" alt="Red cotton midi dress with puff sleeves" loading="lazy">
+          <span class="gallery-ai-badge">AI Generated</span>
+          <div class="gallery-item-overlay">
+            <div class="gallery-item-info">
+              <h4>Red Cotton Midi Dress</h4>
+              <p>Party / Date Night</p>
+            </div>
+          </div>
+        </div>
+        <div class="gallery-item reveal reveal-delay-1">
+          <img src="images/outfit-2.png" alt="Emerald green jumpsuit with long sleeves" loading="lazy">
+          <span class="gallery-ai-badge">AI Generated</span>
+          <div class="gallery-item-overlay">
+            <div class="gallery-item-info">
+              <h4>Emerald Full-Sleeve Jumpsuit</h4>
+              <p>Bold / Evening</p>
+            </div>
+          </div>
+        </div>
+        <div class="gallery-item reveal reveal-delay-2">
+          <img src="images/outfit-3.png" alt="Pink coord set with wide-leg pants" loading="lazy">
+          <span class="gallery-ai-badge">AI Generated</span>
+          <div class="gallery-item-overlay">
+            <div class="gallery-item-info">
+              <h4>Pink Linen Coord Set</h4>
+              <p>Casual / Vacation</p>
+            </div>
+          </div>
+        </div>
+        <div class="gallery-item reveal reveal-delay-3">
+          <img src="images/outfit-4.png" alt="Navy midi skirt with blazer" loading="lazy">
+          <span class="gallery-ai-badge">AI Generated</span>
+          <div class="gallery-item-overlay">
+            <div class="gallery-item-info">
+              <h4>Navy Blazer &amp; Midi Skirt</h4>
+              <p>Office / Professional</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── HOW IT WORKS ─── -->
+  <section class="how-it-works" id="how">
+    <div class="how-it-works-inner">
+      <div class="section-label reveal">How It Works</div>
+      <h2 class="reveal">Three taps. Sixty seconds.</h2>
+      <p class="how-subtitle reveal">No accounts. No apps. Just open WhatsApp and start designing.</p>
+      <div class="steps-container">
+        <div class="step-card reveal">
+          <div class="step-icon-wrap">
+            <div class="step-icon-inner">
+              <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </div>
+          </div>
+          <h3>Message us</h3>
+          <p>Open WhatsApp and say hi. That's it. No app download, no account, no signup.</p>
+        </div>
+        <div class="step-card reveal reveal-delay-1">
+          <div class="step-icon-wrap">
+            <div class="step-icon-inner">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg>
+            </div>
+          </div>
+          <h3>Pick your style</h3>
+          <p>Occasion, fabric, color — four quick taps from a list. No typing. No decisions paralysis.</p>
+        </div>
+        <div class="step-card reveal reveal-delay-2">
+          <div class="step-icon-wrap">
+            <div class="step-icon-inner">
+              <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+          </div>
+          <h3>AI designs it</h3>
+          <p>In 60 seconds, see your custom outfit. Don't love something? Modify it. Want more? Design another.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── WHATSAPP SECTION ─── -->
+  <section class="whatsapp-section">
+    <div class="whatsapp-card reveal">
+      <div class="whatsapp-text">
+        <div class="section-label">The Experience</div>
+        <h2>Fashion design, inside your WhatsApp</h2>
+        <p>No new apps to learn. No websites to browse. Just a conversation that ends with an outfit designed entirely for you.</p>
+        <div class="whatsapp-features">
+          <div class="wf-item">
+            <div class="wf-icon">
+              <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <span>AI generates your design in real-time</span>
+          </div>
+          <div class="wf-item">
+            <div class="wf-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <span>Modify anything — sleeves, length, color, fit</span>
+          </div>
+          <div class="wf-item">
+            <div class="wf-icon">
+              <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </div>
+            <span>Design unlimited outfits, keep playing</span>
+          </div>
+        </div>
+      </div>
+      <div class="whatsapp-phone">
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="phone-header">
+              <div class="phone-avatar">E</div>
+              <div class="phone-header-text">
+                <div class="phone-header-name">Drape AI</div>
+                <div class="phone-header-status">online</div>
+              </div>
+            </div>
+            <div class="phone-chat">
+              <div class="chat-bubble chat-bot">
+                <span class="bold">What's the occasion?</span>
+                <div class="chat-options">
+                  <span class="chat-option">Party/Date</span>
+                  <span class="chat-option">Office</span>
+                  <span class="chat-option">Casual</span>
+                </div>
+              </div>
+              <div class="chat-bubble chat-user">Party/Date &#127881;</div>
+              <div class="chat-bubble chat-bot">
+                <span class="bold">Pick a color:</span>
+                <div class="chat-options">
+                  <span class="chat-option selected">Red</span>
+                  <span class="chat-option">Black</span>
+                  <span class="chat-option">Navy</span>
+                </div>
+              </div>
+              <div class="chat-bubble chat-bot">
+                &#10024; Designing your outfit...
+              </div>
+              <div class="chat-bubble chat-bot" style="padding: 4px;">
+                <div class="chat-image-preview">
+                  <img src="images/outfit-1.png" alt="Generated outfit preview">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CLOSING CTA ─── -->
+  <section class="closing">
+    <div class="closing-inner reveal">
+      <div class="section-label">Almost There</div>
+      <h2>Your outfit is waiting</h2>
+      <p>We'll message you on WhatsApp when it's your turn. Until then, imagine what you'll design first.</p>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─── -->
+  <footer class="footer">
+    <div class="footer-brand">Drape AI</div>
+    <p>Your AI fashion designer, on WhatsApp.</p>
+    <div class="footer-line"></div>
+  </footer>
+
+  <!-- ─── SCROLL REVEAL SCRIPT ─── -->
+  <script>
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, {
+      threshold: 0.15,
+      rootMargin: '0px 0px -40px 0px'
+    });
+    reveals.forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
