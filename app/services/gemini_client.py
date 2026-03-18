@@ -142,7 +142,7 @@ class GeminiClient:
                 "\n"
                 "PRINT/PATTERN RULE (MUST FOLLOW):\n"
                 "- A print/pattern reference image is provided.\n"
-                "- Apply that print/pattern to the garment fabric in a natural, realistic way.\n"
+                f"- Apply ONLY the motif/pattern shapes from the reference image onto the {brief.color.upper()} garment fabric.\n"
                 "- Keep everything else clean: no logos, no text, no brand marks.\n"
                 "- Do NOT invent additional unrelated patterns beyond the reference.\n"
                 "\n"
