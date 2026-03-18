@@ -1844,6 +1844,10 @@ class FlowEngine:
             if kk == "slit":
                 if vv == "none":
                     out[kk] = "Remove any slit; keep hem clean; keep everything else identical."
+                elif vv == "back":
+                    out[kk] = "Add a back slit. Show the garment from the BACK view so the slit is clearly visible. Keep everything else identical."
+                elif vv == "front_and_back":
+                    out[kk] = "Add slits at both front and back of the skirt. Show the garment from the FRONT view. Keep everything else identical."
                 else:
                     out[kk] = f"Add a {vv.replace('_', ' ')} slit; keep everything else identical."
                 continue
