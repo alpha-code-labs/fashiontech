@@ -187,6 +187,7 @@ class GeminiClient:
             f"Category: {brief.category}\n"
             f"Fabric: {brief.fabric}\n"
             f"Color: {brief.color}\n"
+            "Fit: regular (not loose, not tight — standard body-skimming fit).\n"
             + (f"Size: {brief.size}\n" if brief.size else "")
             + (f"Vibe notes: {vibe}\n" if brief.notes else "")
             + "Output: ONE single image. Photorealistic."
