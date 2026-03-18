@@ -1420,7 +1420,7 @@ class FlowEngine:
             if f == "silhouette":
                 return [("pencil", "Pencil"), ("a_line", "A-line"), ("pleated", "Pleated")]
             if f == "slit":
-                return [("none", "None"), ("side", "Side"), ("front", "Front"), ("back", "Back")]
+                return [("none", "None"), ("side", "Side"), ("front", "Front"), ("back", "Back"), ("front_and_back", "Front & Back")]
             if f == "hem_shape":
                 return [("straight", "Straight"), ("asym", "Asymmetric")]
 
@@ -1845,7 +1845,7 @@ class FlowEngine:
                 if vv == "none":
                     out[kk] = "Remove any slit; keep hem clean; keep everything else identical."
                 else:
-                    out[kk] = f"Add a {vv} slit; keep everything else identical."
+                    out[kk] = f"Add a {vv.replace('_', ' ')} slit; keep everything else identical."
                 continue
 
             if kk == "back_detail":
