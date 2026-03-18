@@ -1406,7 +1406,7 @@ class FlowEngine:
 
         if c == "top":
             if f == "length":
-                return [("crop", "Crop"), ("waist", "Waist"), ("hip", "Hip")]
+                return [("crop", "Crop"), ("regular", "Regular"), ("shirt", "Shirt")]
             if f == "hem":
                 return [("straight", "Straight"), ("curved", "Curved"), ("peplum", "Peplum")]
             if f == "back_detail":
@@ -1795,10 +1795,10 @@ class FlowEngine:
             if kk == "length" and c == "top":
                 if vv == "crop":
                     out[kk] = "CRITICAL CHANGE: Shorten the top to CROP length — hemline must end at mid-ribcage, well above the navel. The navel and significant midriff must be clearly visible."
-                elif vv == "waist":
-                    out[kk] = "CRITICAL CHANGE: Adjust the top to WAIST length — hemline must end exactly at the waist."
-                elif vv == "hip":
-                    out[kk] = "CRITICAL CHANGE: Extend the top to HIP length — hemline must reach the hip."
+                elif vv == "regular":
+                    out[kk] = "CRITICAL CHANGE: Adjust the top to REGULAR length — hemline must end across the hip, below the navel, covering the waistband of the pants/jeans."
+                elif vv == "shirt":
+                    out[kk] = "CRITICAL CHANGE: Extend the top to SHIRT length — hemline must end well below the hip, similar to a long untucked shirt. It should be noticeably longer than hip length."
                 else:
                     out[kk] = f"CRITICAL CHANGE: Set top length to {vv}."
                 continue
