@@ -175,7 +175,11 @@ class GeminiClient:
         return (
             "Create a high-quality fashion product-style image.\n"
             "Subject: a South Asian / Indian-looking female model wearing a women's western wear outfit.\n"
-            "Style: premium, modern, Instagram-ready. Natural pose. Studio lighting.\n"
+            "Style: premium, modern, Instagram-ready. Studio lighting.\n"
+            "MODEL POSE & HAIR (CRITICAL):\n"
+            "- Hair MUST be pulled back (bun, ponytail, or swept behind shoulders) so it does NOT cover any part of the garment.\n"
+            "- Pose: front-facing, relaxed, arms slightly away from the body so the full garment silhouette is clearly visible.\n"
+            "- Shoulders, neckline, sleeves, and all garment details must be fully unobstructed.\n"
             f"{framing}"
             "Do NOT add any text, logos, watermarks, brands.\n"
             f"{print_rules}"
@@ -256,7 +260,9 @@ class GeminiClient:
             "PRIORITY: The 'Requested modifications' below are the PRIMARY goal. Apply them fully and visibly.\n"
             "\n"
             "Other rules (secondary to the modifications above):\n"
-            "- Keep the SAME model, same pose, same camera angle, same lighting.\n"
+            "- Keep the SAME model, same camera angle, same lighting.\n"
+            "- Hair MUST stay pulled back (bun, ponytail, or swept behind shoulders) — do NOT let hair cover any part of the garment.\n"
+            "- Pose: front-facing, arms slightly away from body so the full garment silhouette is visible.\n"
             + framing
             + "- Attributes NOT mentioned in the modifications should stay as they are.\n"
             + color_rule

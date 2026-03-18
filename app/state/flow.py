@@ -179,7 +179,6 @@ class FlowEngine:
                     {"id": "D_CLR_GREEN", "title": "Emerald Green"},
                     {"id": "D_CLR_MAROON", "title": "Maroon"},
                     {"id": "D_CLR_CUSTOM", "title": "Type my own color"},
-                    {"id": "D_CLR_AI_PICK", "title": "You choose a color"},
                 ]}],
             )
 
@@ -700,7 +699,6 @@ class FlowEngine:
                         {"id": "D_CLR_GREEN", "title": "Emerald Green"},
                         {"id": "D_CLR_MAROON", "title": "Maroon"},
                         {"id": "D_CLR_CUSTOM", "title": "Type my own color"},
-                        {"id": "D_CLR_AI_PICK", "title": "You choose a color"},
                     ],
                 }
             ],
@@ -729,7 +727,6 @@ class FlowEngine:
             "D_CLR_PINK": "pink",
             "D_CLR_GREEN": "emerald green",
             "D_CLR_MAROON": "maroon",
-            "D_CLR_AI_PICK": "a color that best suits the occasion and outfit",
         }.get(bid)
         if not clr:
             await self._start_design(wa_id)
