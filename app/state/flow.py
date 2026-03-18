@@ -1765,7 +1765,7 @@ class FlowEngine:
 
             if kk == "length" and c == "pants":
                 if vv == "cropped":
-                    out[kk] = "Convert full-length pants into cropped pants ending mid-calf; hem visible; keep everything else identical."
+                    out[kk] = "CRITICAL CHANGE: Convert to cropped pants — hemline must end at mid-calf, clearly above the ankle. The model's lower legs from mid-calf down must be visible."
                 elif vv == "ankle":
                     out[kk] = "Adjust pants length to ankle-length; hem visible; keep everything else identical."
                 else:
@@ -1774,14 +1774,14 @@ class FlowEngine:
 
             if kk == "length" and c == "jumpsuit":
                 if vv == "cropped":
-                    out[kk] = "CRITICAL CHANGE: Convert to a cropped jumpsuit ending mid-calf. The model's lower legs must be visible below mid-calf."
+                    out[kk] = "CRITICAL CHANGE: Convert to a cropped jumpsuit — legs must end at mid-calf, clearly above the ankle. The model's lower legs from mid-calf down must be fully visible."
                 else:
                     out[kk] = "CRITICAL CHANGE: Convert to full-length jumpsuit reaching the ankles."
                 continue
 
             if kk == "length" and c == "jacket":
                 if vv == "cropped":
-                    out[kk] = "CRITICAL CHANGE: Shorten the jacket to CROPPED length — hemline must end above the waist, showing the midriff or waistline clearly."
+                    out[kk] = "CRITICAL CHANGE: Shorten the jacket to CROPPED length — hemline must end well above the waist, showing the midriff or waistline clearly. It must be visibly shorter than a waist-length jacket."
                 elif vv == "waist":
                     out[kk] = "CRITICAL CHANGE: Adjust the jacket to WAIST length — hemline must end exactly at the waist."
                 elif vv == "hip":
@@ -1794,7 +1794,7 @@ class FlowEngine:
 
             if kk == "length" and c == "top":
                 if vv == "crop":
-                    out[kk] = "CRITICAL CHANGE: Shorten the top to CROP length — hemline must end above the waist, showing the midriff clearly."
+                    out[kk] = "CRITICAL CHANGE: Shorten the top to CROP length — hemline must end at mid-ribcage, well above the navel. The navel and significant midriff must be clearly visible."
                 elif vv == "waist":
                     out[kk] = "CRITICAL CHANGE: Adjust the top to WAIST length — hemline must end exactly at the waist."
                 elif vv == "hip":
@@ -1816,7 +1816,7 @@ class FlowEngine:
 
             if kk == "length" and c == "blouse":
                 if vv == "crop":
-                    out[kk] = "CRITICAL CHANGE: Shorten the blouse to CROP length — hemline must end above the waist, showing the midriff clearly."
+                    out[kk] = "CRITICAL CHANGE: Shorten the blouse to CROP length — hemline must end at mid-ribcage, well above the navel. The navel and significant midriff must be clearly visible."
                 elif vv == "waist":
                     out[kk] = "CRITICAL CHANGE: Adjust the blouse to WAIST length — hemline must end exactly at the waist."
                 elif vv == "hip":
@@ -1827,7 +1827,7 @@ class FlowEngine:
 
             if kk == "length" and c == "t-shirts":
                 if vv == "crop":
-                    out[kk] = "CRITICAL CHANGE: Shorten the t-shirt to CROP length — hemline must end above the waist, showing the midriff clearly."
+                    out[kk] = "CRITICAL CHANGE: Shorten the t-shirt to CROP length — hemline must end at mid-ribcage, well above the navel. The navel and significant midriff must be clearly visible."
                 elif vv == "regular":
                     out[kk] = "CRITICAL CHANGE: Adjust the t-shirt to REGULAR length — hemline ending at the hip."
                 elif vv == "longline":
