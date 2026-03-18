@@ -203,15 +203,17 @@ class GeminiClient:
         changes = "\n".join(changes_lines) if changes_lines else "- (no changes provided)"
 
         if has_pattern and pattern_mode == "apply":
+            color_anchor = f"The garment is currently {brief.color.upper()}." if brief.color else ""
             pattern_line = (
-                "PATTERN REFERENCE IMAGE RULES:\n"
+                "PATTERN REFERENCE IMAGE RULES (CRITICAL — FOLLOW EXACTLY):\n"
                 "A pattern/print reference image is attached.\n"
-                "- Extract ONLY the motif shapes and design elements from the reference.\n"
-                "- Apply those motifs as if screen-printed or embroidered ONTO the garment's existing fabric.\n"
-                "- The garment's CURRENT BASE/BACKGROUND COLOR MUST NOT CHANGE.\n"
-                "- Do NOT adopt the reference image's background color as the garment color.\n"
-                "- The base fabric color must remain clearly visible between/around the motifs.\n"
-                "- Think of it like stamping a pattern onto colored fabric — the fabric color stays, the pattern sits on top."
+                f"- {color_anchor} The garment color MUST stay EXACTLY {brief.color.upper()} — do NOT change it.\n"
+                "- Extract ONLY the motif/design shapes from the reference image.\n"
+                "- Apply those motifs as if screen-printed ONTO the garment's existing fabric.\n"
+                "- IGNORE the reference image's background color completely — it is irrelevant.\n"
+                "- The garment's base color must remain clearly visible between and around the motifs.\n"
+                "- Think: stamping a pattern onto colored fabric. The fabric color stays, the motifs sit on top.\n"
+                "- If the reference pattern has a background color different from the garment, discard that background."
             )
         elif has_pattern and pattern_mode == "preserve":
             pattern_line = (
@@ -273,7 +275,8 @@ class GeminiClient:
             "\n"
             f"{pattern_line}\n"
             "\n"
-            "Output: ONE single edited image, photorealistic."
+            + (f"FINAL REMINDER — COLOR: The garment MUST remain {brief.color.upper()}. Do NOT shift the garment color to match any pattern reference image.\n\n" if has_pattern and is_concrete_color else "")
+            + "Output: ONE single edited image, photorealistic."
         )
 
     def _rel_static_to_abs(self, rel_path: str) -> Path:

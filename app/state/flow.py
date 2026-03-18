@@ -218,12 +218,6 @@ class FlowEngine:
                 f"Still there? 💖 Please type the {field.replace('_', ' ')} you'd like.",
             )
 
-        elif state == STATE_DESIGN_MODIFY_WAIT_PATTERN:
-            await self.wa.send_text(
-                wa_id,
-                "Still there? 💖 Please upload your print/pattern image.",
-            )
-
         elif state == STATE_UPLOAD_WAIT_IMAGE:
             await self.wa.send_text(
                 wa_id,
@@ -1251,15 +1245,14 @@ class FlowEngine:
             ],
         )
 
-    def _modify_fields_for_category(self, cat: str, has_print: bool = False) -> List[Tuple[str, str]]:
+    def _modify_fields_for_category(self, cat: str) -> List[Tuple[str, str]]:
         """
         Returns [(field_key, field_title)] for the conditional menu.
         Color is always present.
         """
         c = self._category_key(cat)
 
-        print_label = "Replace Pattern" if has_print else "Add Pattern"
-        base = [("color", "Color"), ("print", print_label)]
+        base = [("color", "Color")]
 
         if c == "dress":
             base += [
@@ -1560,9 +1553,8 @@ class FlowEngine:
 
         sess = await self.store.get(wa_id) or {}
         cat = (sess.get("design_category") or "").strip()
-        has_print = bool((sess.get("design_print_ref") or "").strip())
 
-        fields = self._modify_fields_for_category(cat, has_print=has_print)
+        fields = self._modify_fields_for_category(cat)
         rows = []
         for fkey, ftitle in fields:
             rows.append({"id": f"D_CHG_{fkey.upper()}", "title": ftitle})
@@ -1606,15 +1598,6 @@ class FlowEngine:
                 await self.wa.send_text(wa_id, "What color for the BOTTOM? 💖")
             else:
                 await self.wa.send_text(wa_id, "What color are you thinking? 💖")
-            return
-
-        # Print library selection (replaces the old upload-only flow)
-        if field == "print":
-            await self.store.set_fields(wa_id, {
-                "design_mod_field": "",
-                "design_mod_kv": "{}",
-            })
-            await self._start_print_selection(wa_id, return_to="modify")
             return
 
         options = self._field_options(cat, field)
