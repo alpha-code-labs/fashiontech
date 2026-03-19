@@ -66,6 +66,7 @@ def _build_html(orders: list[dict]) -> str:
         fabric = (order.get("design_fabric") or "").strip().title()
         color = (order.get("design_color") or "").strip().title()
         size = (order.get("buy_size") or "").strip().upper()
+        length = (order.get("buy_length") or "").strip().title()
         logged_ts = order.get("logged_at_ts", "")
         formatted_time = _format_ts(logged_ts) if logged_ts else ""
 
@@ -148,6 +149,10 @@ def _build_html(orders: list[dict]) -> str:
                         <div class="spec-row">
                             <span class="spec-label">Size</span>
                             <span class="spec-value size-badge">{size}</span>
+                        </div>
+                        <div class="spec-row">
+                            <span class="spec-label">Length</span>
+                            <span class="spec-value">{length or '—'}</span>
                         </div>
                         {print_block}
                     </div>

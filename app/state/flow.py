@@ -46,6 +46,7 @@ STATE_UPLOAD_PICK_OPTION = "UPLOAD_PICK_OPTION"
 STATE_BUY_NAME = "BUY_NAME"
 STATE_BUY_EMAIL = "BUY_EMAIL"
 STATE_BUY_SIZE = "BUY_SIZE"
+STATE_BUY_LENGTH = "BUY_LENGTH"
 STATE_BUY_CONFIRM = "BUY_CONFIRM"
 
 MAX_GENERATIONS = 10
@@ -228,6 +229,9 @@ class FlowEngine:
 
         elif state == STATE_BUY_SIZE:
             await self._send_size_selection(wa_id, intro="Still there? 💖 What's your size?")
+
+        elif state == STATE_BUY_LENGTH:
+            await self._send_length_selection(wa_id)
 
         elif state == STATE_BUY_CONFIRM:
             await self.wa.send_text(
@@ -1253,7 +1257,6 @@ class FlowEngine:
 
         if c == "dress":
             base += [
-                ("length", "Length"),
                 ("sleeves", "Sleeves"),
                 ("neckline", "Neckline"),
                 ("waist_fit", "Waist fit"),
@@ -1263,7 +1266,6 @@ class FlowEngine:
             ]
         elif c == "top":
             base += [
-                ("length", "Length"),
                 ("sleeves", "Sleeves"),
                 ("neckline", "Neckline"),
                 ("fit", "Fit"),
@@ -1272,7 +1274,6 @@ class FlowEngine:
             ]
         elif c == "skirt":
             base += [
-                ("length", "Length"),
                 ("waist_rise", "Waist rise"),
                 ("silhouette", "Silhouette"),
                 ("slit", "Slit"),
@@ -1280,7 +1281,6 @@ class FlowEngine:
             ]
         elif c == "pants":
             base += [
-                ("length", "Length"),
                 ("fit", "Fit"),
                 ("rise", "Rise"),
                 ("waistband_style", "Waistband style"),
@@ -1288,7 +1288,6 @@ class FlowEngine:
             ]
         elif c == "jumpsuit":
             base += [
-                ("length", "Length"),
                 ("sleeves", "Sleeves"),
                 ("neckline", "Neckline"),
                 ("fit", "Fit"),
@@ -1298,7 +1297,6 @@ class FlowEngine:
             ]
         elif c == "jacket":
             base += [
-                ("length", "Length"),
                 ("fit", "Fit"),
                 ("collar_neck", "Collar/neck style"),
                 ("sleeves", "Sleeves"),
@@ -1310,7 +1308,6 @@ class FlowEngine:
                 ("sleeves", "Sleeves"),
                 ("collar_type", "Collar type"),
                 ("fit", "Fit"),
-                ("length", "Length"),
                 ("cuffs", "Cuffs"),
                 ("hem", "Hem"),
             ]
@@ -1319,9 +1316,7 @@ class FlowEngine:
                 ("top_type", "Top type"),
                 ("top_sleeves", "Top sleeves"),
                 ("top_neckline", "Top neckline"),
-                ("top_length", "Top length"),
                 ("bottom_type", "Bottom type"),
-                ("bottom_length", "Bottom length"),
                 ("bottom_fit", "Bottom fit"),
                 ("color_top", "Top color"),
                 ("color_bottom", "Bottom color"),
@@ -1334,7 +1329,6 @@ class FlowEngine:
                 ("sleeves", "Sleeves"),
                 ("neckline", "Neckline"),
                 ("fit", "Fit"),
-                ("length", "Length"),
                 ("front_detail", "Front detail"),
                 ("back_detail", "Back detail"),
             ]
@@ -1343,12 +1337,11 @@ class FlowEngine:
                 ("sleeve_length", "Sleeve length"),
                 ("neckline", "Neckline"),
                 ("fit", "Fit"),
-                ("length", "Length"),
                 ("hem", "Hem"),
             ]
         else:
             # unknown -> keep safe minimal
-            base += [("length", "Length"), ("fit", "Fit"), ("neckline", "Neckline"), ("sleeves", "Sleeves")]
+            base += [("fit", "Fit"), ("neckline", "Neckline"), ("sleeves", "Sleeves")]
 
         return base
 
@@ -1393,8 +1386,6 @@ class FlowEngine:
 
         # Per-category fields
         if c == "dress":
-            if f == "length":
-                return [("mini", "Mini"), ("midi", "Midi"), ("maxi", "Maxi")]
             if f == "waist_fit":
                 return [("cinched", "Cinched"), ("straight", "Straight"), ("empire", "Empire")]
             if f == "silhouette":
@@ -1405,16 +1396,12 @@ class FlowEngine:
                 return [("open_back", "Open-back"), ("zip", "Zip"), ("tie", "Tie")]
 
         if c == "top":
-            if f == "length":
-                return [("crop", "Crop"), ("regular", "Regular"), ("shirt", "Shirt")]
             if f == "hem":
                 return [("straight", "Straight"), ("curved", "Curved"), ("peplum", "Peplum")]
             if f == "back_detail":
                 return [("tie", "Tie"), ("cutout", "Cutout"), ("zip", "Zip")]
 
         if c == "skirt":
-            if f == "length":
-                return [("mini", "Mini"), ("midi", "Midi"), ("maxi", "Maxi")]
             if f == "waist_rise":
                 return [("high", "High"), ("mid", "Mid"), ("low", "Low")]
             if f == "silhouette":
@@ -1425,8 +1412,6 @@ class FlowEngine:
                 return [("straight", "Straight"), ("asym", "Asymmetric")]
 
         if c == "pants":
-            if f == "length":
-                return [("full", "Full length"), ("ankle", "Ankle"), ("cropped", "Cropped")]
             if f == "rise":
                 return [("high", "High"), ("mid", "Mid"), ("low", "Low")]
             if f == "waistband_style":
@@ -1435,8 +1420,6 @@ class FlowEngine:
                 return [("tapered", "Tapered"), ("flared", "Flared")]
 
         if c == "jumpsuit":
-            if f == "length":
-                return [("full", "Full length"), ("cropped", "Cropped")]
             if f == "waist_definition":
                 return [("belted", "Belted"), ("cinched", "Cinched"), ("straight", "Straight")]
             if f == "leg_fit":
@@ -1445,8 +1428,6 @@ class FlowEngine:
                 return [("zip", "Zip"), ("open_back", "Open-back"), ("tie", "Tie")]
 
         if c == "jacket":
-            if f == "length":
-                return [("cropped", "Cropped"), ("waist", "Waist"), ("hip", "Hip"), ("longline", "Longline")]
             if f == "collar_neck":
                 return [("lapel", "Lapel"), ("mandarin", "Mandarin"), ("hooded", "Hooded")]
             if f == "closure":
@@ -1457,8 +1438,6 @@ class FlowEngine:
         if c == "shirts":
             if f == "collar_type":
                 return [("classic", "Classic"), ("mandarin", "Mandarin"), ("spread", "Spread")]
-            if f == "length":
-                return [("tucked", "Tucked"), ("untucked", "Untucked"), ("longline", "Longline")]
             if f == "cuffs":
                 return [("buttoned", "Buttoned"), ("elastic", "Elastic")]
             if f == "hem":
@@ -1471,12 +1450,8 @@ class FlowEngine:
                 return [("sleeveless", "Sleeveless"), ("short", "Short"), ("three_quarter", "3/4"), ("long", "Long")]
             if f == "top_neckline":
                 return [("crew", "Crew"), ("v", "V-neck"), ("square", "Square"), ("halter", "Halter")]
-            if f == "top_length":
-                return [("crop", "Crop"), ("waist", "Waist"), ("hip", "Hip")]
             if f == "bottom_type":
                 return [("pants", "Pants"), ("skirt", "Skirt"), ("shorts", "Shorts")]
-            if f == "bottom_length":
-                return [("short", "Short"), ("midi", "Midi"), ("full", "Full")]
             if f == "bottom_fit":
                 return [("wide", "Wide"), ("straight", "Straight"), ("pencil", "Pencil"), ("a_line", "A-line")]
 
@@ -1485,8 +1460,6 @@ class FlowEngine:
                 return [("puff", "Puff"), ("bell", "Bell"), ("straight", "Straight")]
             if f == "fit":
                 return [("tailored", "Tailored"), ("relaxed", "Relaxed")]
-            if f == "length":
-                return [("crop", "Crop"), ("waist", "Waist"), ("hip", "Hip")]
             if f == "front_detail":
                 return [("tie", "Tie"), ("pleats", "Pleats"), ("buttons", "Buttons")]
             if f == "back_detail":
@@ -1497,20 +1470,13 @@ class FlowEngine:
                 return [("cap", "Cap"), ("half", "Half"), ("long", "Long")]
             if f == "fit":
                 return [("slim", "Slim"), ("regular", "Regular"), ("oversized", "Oversized")]
-            if f == "length":
-                return [("crop", "Crop"), ("regular", "Regular"), ("longline", "Longline")]
             if f == "hem":
                 return [("straight", "Straight"), ("curved", "Curved")]
-
-        # Fallback presets
-        if f == "length":
-            return [("shorter", "Shorter"), ("longer", "Longer")]
 
         return []
 
     def _pretty_field_label(self, field: str) -> str:
         m = {
-            "length": "length",
             "sleeves": "sleeves",
             "neckline": "neckline",
             "waist_fit": "waist fit",
@@ -1533,9 +1499,7 @@ class FlowEngine:
             "top_type": "top type",
             "top_sleeves": "top sleeves",
             "top_neckline": "top neckline",
-            "top_length": "top length",
             "bottom_type": "bottom type",
-            "bottom_length": "bottom length",
             "bottom_fit": "bottom fit",
             "sleeve_length": "sleeve length",
             "color": "color",
@@ -1752,95 +1716,6 @@ class FlowEngine:
             label = self._pretty_field_label(kk)
 
             # add a bit more precision for key fields
-            if kk == "length" and c in {"dress", "skirt"}:
-                if vv == "mini":
-                    out[kk] = f"CRITICAL CHANGE: Shorten the {c} to MINI length — hemline must end at mid-thigh, well above the knee. Remove all fabric below mid-thigh. The model's legs from mid-thigh down must be fully visible."
-                elif vv == "midi":
-                    out[kk] = f"CRITICAL CHANGE: Adjust the {c} to MIDI length — hemline must end below the knee, around mid-calf. The model's lower legs (below mid-calf) must be visible."
-                elif vv == "maxi":
-                    out[kk] = f"CRITICAL CHANGE: Extend the {c} to MAXI length — hemline must reach the ankles or floor. No leg should be visible below the garment."
-                else:
-                    out[kk] = f"CRITICAL CHANGE: Set {c} length to {vv}."
-                continue
-
-            if kk == "length" and c == "pants":
-                if vv == "cropped":
-                    out[kk] = "CRITICAL CHANGE: Convert to cropped pants — hemline must end at mid-calf, clearly above the ankle. The model's lower legs from mid-calf down must be visible."
-                elif vv == "ankle":
-                    out[kk] = "Adjust pants length to ankle-length; hem visible; keep everything else identical."
-                else:
-                    out[kk] = "Set pants to full-length; hem visible; keep everything else identical."
-                continue
-
-            if kk == "length" and c == "jumpsuit":
-                if vv == "cropped":
-                    out[kk] = "CRITICAL CHANGE: Convert to a cropped jumpsuit — legs must end at mid-calf, clearly above the ankle. The model's lower legs from mid-calf down must be fully visible."
-                else:
-                    out[kk] = "CRITICAL CHANGE: Convert to full-length jumpsuit reaching the ankles."
-                continue
-
-            if kk == "length" and c == "jacket":
-                if vv == "cropped":
-                    out[kk] = "CRITICAL CHANGE: Shorten the jacket to CROPPED length — hemline must end well above the waist, showing the midriff or waistline clearly. It must be visibly shorter than a waist-length jacket."
-                elif vv == "waist":
-                    out[kk] = "CRITICAL CHANGE: Adjust the jacket to WAIST length — hemline must end exactly at the waist."
-                elif vv == "hip":
-                    out[kk] = "CRITICAL CHANGE: Extend the jacket to HIP length — hemline must end at the hip."
-                elif vv == "longline":
-                    out[kk] = "CRITICAL CHANGE: Extend the jacket to LONGLINE length — hemline must end at mid-thigh or below."
-                else:
-                    out[kk] = f"CRITICAL CHANGE: Set jacket length to {vv}."
-                continue
-
-            if kk == "length" and c == "top":
-                if vv == "crop":
-                    out[kk] = "CRITICAL CHANGE: Shorten the top to CROP length — hemline must end at mid-ribcage, well above the navel. The navel and significant midriff must be clearly visible."
-                elif vv == "regular":
-                    out[kk] = "CRITICAL CHANGE: Adjust the top to REGULAR length — hemline must end across the hip, below the navel, covering the waistband of the pants/jeans."
-                elif vv == "shirt":
-                    out[kk] = "CRITICAL CHANGE: Extend the top to SHIRT length — hemline must end well below the hip, similar to a long untucked shirt. It should be noticeably longer than hip length."
-                else:
-                    out[kk] = f"CRITICAL CHANGE: Set top length to {vv}."
-                continue
-
-            if kk == "length" and c == "shirts":
-                if vv == "tucked":
-                    out[kk] = "CRITICAL CHANGE: Adjust the shirt to TUCKED length — short enough to be tucked into bottoms cleanly."
-                elif vv == "untucked":
-                    out[kk] = "CRITICAL CHANGE: Adjust the shirt to UNTUCKED length — hemline ending at the hip."
-                elif vv == "longline":
-                    out[kk] = "CRITICAL CHANGE: Extend the shirt to LONGLINE length — hemline ending at mid-thigh."
-                else:
-                    out[kk] = f"CRITICAL CHANGE: Set shirt length to {vv}."
-                continue
-
-            if kk == "length" and c == "blouse":
-                if vv == "crop":
-                    out[kk] = "CRITICAL CHANGE: Shorten the blouse to CROP length — hemline must end at mid-ribcage, well above the navel. The navel and significant midriff must be clearly visible."
-                elif vv == "waist":
-                    out[kk] = "CRITICAL CHANGE: Adjust the blouse to WAIST length — hemline must end exactly at the waist."
-                elif vv == "hip":
-                    out[kk] = "CRITICAL CHANGE: Extend the blouse to HIP length — hemline must reach the hip."
-                else:
-                    out[kk] = f"CRITICAL CHANGE: Set blouse length to {vv}."
-                continue
-
-            if kk == "length" and c == "t-shirts":
-                if vv == "crop":
-                    out[kk] = "CRITICAL CHANGE: Shorten the t-shirt to CROP length — hemline must end at mid-ribcage, well above the navel. The navel and significant midriff must be clearly visible."
-                elif vv == "regular":
-                    out[kk] = "CRITICAL CHANGE: Adjust the t-shirt to REGULAR length — hemline ending at the hip."
-                elif vv == "longline":
-                    out[kk] = "CRITICAL CHANGE: Extend the t-shirt to LONGLINE length — hemline ending at mid-thigh."
-                else:
-                    out[kk] = f"CRITICAL CHANGE: Set t-shirt length to {vv}."
-                continue
-
-            if kk in {"top_length", "bottom_length"} and c == "coord sets":
-                piece = "top" if kk == "top_length" else "bottom"
-                out[kk] = f"CRITICAL CHANGE: Set the {piece} of the coord set to {vv} length. Keep the other piece unchanged."
-                continue
-
             if kk == "slit":
                 if vv == "none":
                     out[kk] = "Remove any slit; keep hem clean; keep everything else identical."
@@ -2275,8 +2150,103 @@ class FlowEngine:
         await self._send_design_post(wa_id)
 
     # -------------------------
-    # DESIGN BUY FLOW (size → confirm → order logged)
+    # DESIGN BUY FLOW (size → length → confirm → order logged)
     # -------------------------
+
+    def _length_options_for_category(self, cat: str) -> list:
+        """Returns [(value, button_title, description)] for length selection at checkout."""
+        c = self._category_key(cat)
+        if c == "dress":
+            return [
+                ("mini", "Mini", "Hemline at mid-thigh, above the knee"),
+                ("midi", "Midi", "Hemline below the knee, around mid-calf"),
+                ("maxi", "Maxi", "Hemline at the ankles or floor"),
+            ]
+        if c == "top":
+            return [
+                ("crop", "Crop", "Ends at mid-ribcage, navel visible"),
+                ("regular", "Regular", "Ends at the hip, covers waistband"),
+                ("shirt", "Shirt", "Ends well below the hip, like an untucked shirt"),
+            ]
+        if c == "skirt":
+            return [
+                ("mini", "Mini", "Hemline at mid-thigh, above the knee"),
+                ("midi", "Midi", "Hemline below the knee, around mid-calf"),
+                ("maxi", "Maxi", "Hemline at the ankles or floor"),
+            ]
+        if c == "pants":
+            return [
+                ("full", "Full length", "Hem reaches the ankle/shoe"),
+                ("ankle", "Ankle", "Hem at the ankle bone"),
+                ("cropped", "Cropped", "Hem at mid-calf, above the ankle"),
+            ]
+        if c == "jumpsuit":
+            return [
+                ("full", "Full length", "Legs reach the ankles"),
+                ("cropped", "Cropped", "Legs end at mid-calf"),
+            ]
+        if c == "jacket":
+            return [
+                ("cropped", "Cropped", "Ends above the waist, showing midriff"),
+                ("waist", "Waist", "Ends exactly at the waist"),
+                ("hip", "Hip", "Ends at the hip"),
+            ]
+        if c == "shirts":
+            return [
+                ("tucked", "Tucked", "Short enough to tuck into bottoms"),
+                ("untucked", "Untucked", "Hemline at the hip"),
+                ("longline", "Longline", "Hemline at mid-thigh"),
+            ]
+        if c == "coord sets":
+            return []
+        if c == "blouse":
+            return [
+                ("crop", "Crop", "Ends at mid-ribcage, navel visible"),
+                ("waist", "Waist", "Ends exactly at the waist"),
+                ("hip", "Hip", "Hemline reaches the hip"),
+            ]
+        if c == "t-shirts":
+            return [
+                ("crop", "Crop", "Ends at mid-ribcage, navel visible"),
+                ("regular", "Regular", "Hemline at the hip"),
+                ("longline", "Longline", "Hemline at mid-thigh"),
+            ]
+        return []
+
+    async def _send_length_selection(self, wa_id: str) -> None:
+        """Send length options as WhatsApp buttons with descriptions."""
+        sess = await self.store.get(wa_id) or {}
+        cat = (sess.get("design_category") or "").strip()
+        options = self._length_options_for_category(cat)
+
+        if not options:
+            # No length options (e.g., coord sets) — skip to confirm
+            await self._send_buy_confirm(wa_id)
+            return
+
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_LENGTH})
+        await self.store.touch(wa_id)
+
+        desc_lines = ["Select your preferred length:\n"]
+        for val, title, desc in options:
+            desc_lines.append(f"• {title} — {desc}")
+        body = "\n".join(desc_lines)
+
+        buttons = [("LENGTH_" + val.upper(), title) for val, title, _ in options]
+        await self.wa.send_buttons(wa_id, body, buttons)
+
+    async def handle_buy_length(self, wa_id: str, bid: str) -> None:
+        """Handle length button selection at checkout."""
+        await self.store.touch(wa_id)
+
+        length = bid.replace("LENGTH_", "").lower() if bid.startswith("LENGTH_") else None
+
+        if not length:
+            await self._send_length_selection(wa_id)
+            return
+
+        await self.store.set_fields(wa_id, {"buy_length": length})
+        await self._send_buy_confirm(wa_id)
 
     async def handle_buy_size(self, wa_id: str, bid: str) -> None:
         await self.store.touch(wa_id)
@@ -2291,19 +2261,24 @@ class FlowEngine:
         }.get(bid)
 
         if not size:
-            # Unrecognized — re-send size chart + list
             await self._send_size_selection(wa_id, intro="Please pick a size 💖")
             return
 
-        await self.store.set_fields(wa_id, {"buy_size": size, "state": STATE_BUY_CONFIRM})
+        await self.store.set_fields(wa_id, {"buy_size": size})
+        await self._send_length_selection(wa_id)
+
+    async def _send_buy_confirm(self, wa_id: str) -> None:
+        """Build and send order confirmation summary."""
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_CONFIRM})
         await self.store.touch(wa_id)
 
-        # Build confirmation summary from session
         sess = await self.store.get(wa_id) or {}
         category = (sess.get("design_category") or "").strip().title()
         fabric = (sess.get("design_fabric") or "").strip().title()
         color = (sess.get("design_color") or "").strip().title()
         occasion = (sess.get("design_occasion") or "").strip()
+        size = (sess.get("buy_size") or "").strip()
+        length = (sess.get("buy_length") or "").strip().title()
 
         # Send the design image first
         rel_image_path = (sess.get("generated_image") or "").strip()
@@ -2312,13 +2287,15 @@ class FlowEngine:
             image_url = f"{public_base_url}{rel_image_path}"
             await self.wa.send_image(wa_id, image_url=image_url, caption="Your design 💖")
 
+        length_line = f"Length: {length}\n" if length else ""
         summary = (
             f"Your order summary 📋\n\n"
             f"Category: {category}\n"
             f"Fabric: {fabric}\n"
             f"Color: {color}\n"
             f"Occasion: {occasion}\n"
-            f"Size: {size}\n\n"
+            f"Size: {size}\n"
+            f"{length_line}\n"
             f"Confirm your order? 💖"
         )
 

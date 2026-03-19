@@ -31,6 +31,7 @@ from app.state.flow import (
     STATE_UPLOAD_WAIT_IMAGE,
     STATE_UPLOAD_PICK_OPTION,
     STATE_BUY_SIZE,
+    STATE_BUY_LENGTH,
     STATE_BUY_CONFIRM,
 )
 
@@ -222,6 +223,10 @@ async def receive_webhook(request: Request) -> dict:
             # BUY (design flow)
             if state == STATE_BUY_SIZE:
                 await flow.handle_buy_size(wa_id, bid)
+                return {"ok": True}
+
+            if state == STATE_BUY_LENGTH:
+                await flow.handle_buy_length(wa_id, bid)
                 return {"ok": True}
 
             if state == STATE_BUY_CONFIRM:
