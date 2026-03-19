@@ -1424,7 +1424,7 @@ class FlowEngine:
             if f == "waist_definition":
                 return [("belted", "Belted"), ("cinched", "Cinched"), ("straight", "Straight")]
             if f == "leg_fit":
-                return [("wide", "Wide"), ("straight", "Straight"), ("tapered", "Tapered")]
+                return [("slim", "Slim"), ("regular", "Regular"), ("palazzo", "Palazzo")]
             if f == "back_detail":
                 return [("zip", "Zip"), ("open_back", "Open-back"), ("tie", "Tie")]
 
@@ -1745,7 +1745,9 @@ class FlowEngine:
                 elif kk == "sleeves":
                     out[kk] = f"Change the sleeves of the jumpsuit to {vv}. Keep the rest of the jumpsuit identical."
                 elif kk == "leg_fit":
-                    out[kk] = f"Change the leg fit of the jumpsuit to {vv} legs. Keep the top half and everything else identical."
+                    leg_map = {"slim": "slim", "regular": "wide", "palazzo": "palazzo"}
+                    gemini_val = leg_map.get(vv, vv)
+                    out[kk] = f"Change the leg fit of the jumpsuit to {gemini_val} legs. Keep the top half and everything else identical."
                 elif kk == "waist_definition":
                     out[kk] = f"Change the waist definition of the jumpsuit to {vv}. Keep everything else identical."
                 else:
