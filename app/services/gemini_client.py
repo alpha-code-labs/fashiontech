@@ -172,6 +172,20 @@ class GeminiClient:
             else "FRAMING: Show the full outfit from head to at least mid-calf.\n"
         )
 
+        # For bottom-only categories, force a plain black top
+        is_bottom_only = cat_lower in ("skirt", "pants")
+        top_rule = (
+            "\n"
+            "UPPER BODY RULE (CRITICAL):\n"
+            "- The model MUST wear a plain solid BLACK top on the upper body.\n"
+            "- The top must be simple — no prints, no patterns, no embellishments, no design details.\n"
+            "- The focus of this image is ONLY the " + brief.category + ". The top is just a neutral pairing.\n"
+            "- Do NOT apply the garment's color, fabric, or print to the top. The top stays plain black.\n"
+            "\n"
+            if is_bottom_only
+            else ""
+        )
+
         return (
             "Create a high-quality fashion product-style image.\n"
             "Subject: a South Asian / Indian-looking female model wearing a women's western wear outfit.\n"
@@ -183,6 +197,7 @@ class GeminiClient:
             f"{framing}"
             "Do NOT add any text, logos, watermarks, brands.\n"
             f"{print_rules}"
+            f"{top_rule}"
             f"Occasion: {brief.occasion}\n"
             f"Category: {brief.category}\n"
             f"Fabric: {brief.fabric}\n"
@@ -255,6 +270,17 @@ class GeminiClient:
             else "- FRAMING: Show the full outfit from head to at least mid-calf.\n"
         )
 
+        # Black top rule for bottom-only categories
+        is_bottom_only = cat_lower in ("skirt", "pants")
+        top_rule = (
+            "- UPPER BODY RULE (CRITICAL): The model MUST keep wearing a plain solid BLACK top. "
+            "No prints, no patterns, no embellishments on the top. "
+            "Do NOT apply any modifications, color changes, or prints to the top — it stays plain black. "
+            "All modifications apply ONLY to the " + brief.category + ".\n"
+            if is_bottom_only
+            else ""
+        )
+
         return (
             "You are editing an existing fashion image.\n"
             "\n"
@@ -265,6 +291,7 @@ class GeminiClient:
             "- Hair MUST stay pulled back (bun, ponytail, or swept behind shoulders) — do NOT let hair cover any part of the garment.\n"
             "- Pose: front-facing, arms slightly away from body so the full garment silhouette is visible.\n"
             + framing
+            + top_rule
             + "- Attributes NOT mentioned in the modifications should stay as they are.\n"
             + color_rule
             + "- Do not add text, logos, watermarks.\n"
