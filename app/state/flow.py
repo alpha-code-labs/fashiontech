@@ -1385,7 +1385,7 @@ class FlowEngine:
             if c == "jacket":
                 return [("structured", "Structured"), ("relaxed", "Relaxed"), ("oversized", "Oversized")]
             if c == "pants":
-                return [("skinny", "Skinny"), ("straight", "Straight"), ("wide", "Wide"), ("bootcut", "Bootcut")]
+                return [("slim", "Slim"), ("regular", "Regular"), ("palazzo", "Palazzo")]
             return [("regular", "Regular"), ("tailored", "Tailored"), ("relaxed", "Relaxed")]
 
         # Per-category fields
@@ -1770,6 +1770,13 @@ class FlowEngine:
                     out[kk] = f"Change the BOTTOM piece color to {vv}. Keep the top piece color unchanged."
                 else:
                     out[kk] = f"Set {label} to {vv} on BOTH pieces of the coord set. Keep everything else identical."
+                continue
+
+            # Pants fit remapping: "regular" label actually means wide-leg for Gemini
+            if c == "pants" and kk == "fit":
+                fit_map = {"slim": "slim", "regular": "wide", "palazzo": "palazzo"}
+                gemini_val = fit_map.get(vv, vv)
+                out[kk] = f"Set fit to {gemini_val}. Keep everything else identical."
                 continue
 
             # default — single-piece garments
