@@ -1288,7 +1288,6 @@ class FlowEngine:
                 ("fit", "Fit"),
                 ("rise", "Rise"),
                 ("waistband_style", "Waistband style"),
-                ("leg_opening", "Leg opening"),
             ]
         elif c == "jumpsuit":
             base += [
@@ -1420,8 +1419,6 @@ class FlowEngine:
                 return [("high", "High"), ("mid", "Mid"), ("low", "Low")]
             if f == "waistband_style":
                 return [("elastic", "Elastic"), ("button", "Button")]
-            if f == "leg_opening":
-                return [("tapered", "Tapered"), ("flared", "Flared")]
 
         if c == "jumpsuit":
             if f == "waist_definition":
@@ -1492,7 +1489,6 @@ class FlowEngine:
             "front_detail": "front detail",
             "rise": "rise",
             "waistband_style": "waistband style",
-            "leg_opening": "leg opening",
             "waist_definition": "waist definition",
             "leg_fit": "leg fit",
             "collar_neck": "collar/neck style",
