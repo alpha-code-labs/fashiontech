@@ -47,6 +47,7 @@ STATE_BUY_NAME = "BUY_NAME"
 STATE_BUY_EMAIL = "BUY_EMAIL"
 STATE_BUY_SIZE = "BUY_SIZE"
 STATE_BUY_LENGTH = "BUY_LENGTH"
+STATE_BUY_LENGTH_BOTTOM = "BUY_LENGTH_BOTTOM"
 STATE_BUY_CONFIRM = "BUY_CONFIRM"
 
 MAX_GENERATIONS = 10
@@ -232,6 +233,9 @@ class FlowEngine:
 
         elif state == STATE_BUY_LENGTH:
             await self._send_length_selection(wa_id)
+
+        elif state == STATE_BUY_LENGTH_BOTTOM:
+            await self._send_bottom_length_selection(wa_id)
 
         elif state == STATE_BUY_CONFIRM:
             await self.wa.send_text(
@@ -2198,7 +2202,12 @@ class FlowEngine:
                 ("longline", "Longline", "Hemline at mid-thigh"),
             ]
         if c == "coord sets":
-            return []
+            # Top piece length — bottom handled separately
+            return [
+                ("crop", "Crop", "Top ends at mid-ribcage"),
+                ("waist", "Waist", "Top ends at the waist"),
+                ("hip", "Hip", "Top ends at the hip"),
+            ]
         if c == "blouse":
             return [
                 ("crop", "Crop", "Ends at mid-ribcage, navel visible"),
@@ -2213,26 +2222,49 @@ class FlowEngine:
             ]
         return []
 
+    def _coord_bottom_length_options(self) -> list:
+        """Returns [(value, button_title, description)] for coord set bottom length."""
+        return [
+            ("short", "Short", "Hemline above the knee"),
+            ("midi", "Midi", "Hemline below the knee, around mid-calf"),
+            ("full", "Full", "Hemline at the ankle"),
+        ]
+
     async def _send_length_selection(self, wa_id: str) -> None:
         """Send length options as WhatsApp buttons with descriptions."""
         sess = await self.store.get(wa_id) or {}
         cat = (sess.get("design_category") or "").strip()
+        c = self._category_key(cat)
         options = self._length_options_for_category(cat)
 
         if not options:
-            # No length options (e.g., coord sets) — skip to confirm
             await self._send_buy_confirm(wa_id)
             return
 
         await self.store.set_fields(wa_id, {"state": STATE_BUY_LENGTH})
         await self.store.touch(wa_id)
 
-        desc_lines = ["Select your preferred length:\n"]
+        header = "Select your preferred TOP length:\n" if c == "coord sets" else "Select your preferred length:\n"
+        desc_lines = [header]
         for val, title, desc in options:
             desc_lines.append(f"• {title} — {desc}")
         body = "\n".join(desc_lines)
 
         buttons = [("LENGTH_" + val.upper(), title) for val, title, _ in options]
+        await self.wa.send_buttons(wa_id, body, buttons)
+
+    async def _send_bottom_length_selection(self, wa_id: str) -> None:
+        """Send bottom length options for coord sets."""
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_LENGTH_BOTTOM})
+        await self.store.touch(wa_id)
+
+        options = self._coord_bottom_length_options()
+        desc_lines = ["Now select your preferred BOTTOM length:\n"]
+        for val, title, desc in options:
+            desc_lines.append(f"• {title} — {desc}")
+        body = "\n".join(desc_lines)
+
+        buttons = [("BLEN_" + val.upper(), title) for val, title, _ in options]
         await self.wa.send_buttons(wa_id, body, buttons)
 
     async def handle_buy_length(self, wa_id: str, bid: str) -> None:
@@ -2245,7 +2277,32 @@ class FlowEngine:
             await self._send_length_selection(wa_id)
             return
 
-        await self.store.set_fields(wa_id, {"buy_length": length})
+        sess = await self.store.get(wa_id) or {}
+        cat = (sess.get("design_category") or "").strip()
+        c = self._category_key(cat)
+
+        if c == "coord sets":
+            # Save as top length, then ask for bottom
+            await self.store.set_fields(wa_id, {"buy_length": f"Top: {length}"})
+            await self._send_bottom_length_selection(wa_id)
+        else:
+            await self.store.set_fields(wa_id, {"buy_length": length})
+            await self._send_buy_confirm(wa_id)
+
+    async def handle_buy_bottom_length(self, wa_id: str, bid: str) -> None:
+        """Handle bottom length button selection for coord sets."""
+        await self.store.touch(wa_id)
+
+        length = bid.replace("BLEN_", "").lower() if bid.startswith("BLEN_") else None
+
+        if not length:
+            await self._send_bottom_length_selection(wa_id)
+            return
+
+        sess = await self.store.get(wa_id) or {}
+        top_length = (sess.get("buy_length") or "").strip()
+        combined = f"{top_length}, Bottom: {length}"
+        await self.store.set_fields(wa_id, {"buy_length": combined})
         await self._send_buy_confirm(wa_id)
 
     async def handle_buy_size(self, wa_id: str, bid: str) -> None:
