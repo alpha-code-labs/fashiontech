@@ -1419,7 +1419,7 @@ class FlowEngine:
             if f == "rise":
                 return [("high", "High"), ("mid", "Mid"), ("low", "Low")]
             if f == "waistband_style":
-                return [("elastic", "Elastic"), ("button", "Button"), ("pleated", "Pleated")]
+                return [("elastic", "Elastic"), ("button", "Button")]
             if f == "leg_opening":
                 return [("tapered", "Tapered"), ("flared", "Flared")]
 
