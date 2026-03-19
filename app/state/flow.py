@@ -1293,7 +1293,6 @@ class FlowEngine:
             base += [
                 ("sleeves", "Sleeves"),
                 ("neckline", "Neckline"),
-                ("fit", "Fit"),
                 ("waist_definition", "Waist definition"),
                 ("leg_fit", "Leg fit"),
                 ("back_detail", "Back detail"),
@@ -1738,9 +1737,7 @@ class FlowEngine:
             # --- Multi-part garment awareness ---
             # Jumpsuit is ONE piece — modifications apply to the entire garment
             if c == "jumpsuit":
-                if kk == "fit":
-                    out[kk] = f"Change the fit of the ENTIRE jumpsuit (both top and bottom) to {vv}. Keep everything else identical."
-                elif kk == "neckline":
+                if kk == "neckline":
                     out[kk] = f"Change the neckline of the jumpsuit to {vv}. Keep the rest of the jumpsuit identical."
                 elif kk == "sleeves":
                     out[kk] = f"Change the sleeves of the jumpsuit to {vv}. Keep the rest of the jumpsuit identical."
