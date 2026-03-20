@@ -1458,7 +1458,7 @@ class FlowEngine:
                 if bt == "skirt":
                     return [("pencil", "Pencil"), ("a_line", "A-line"), ("pleated", "Pleated")]
                 elif bt == "shorts":
-                    return [("slim", "Slim"), ("regular", "Regular")]
+                    return []  # no fit options for shorts
                 else:  # pants or unknown
                     return [("slim", "Slim"), ("regular", "Regular"), ("palazzo", "Palazzo")]
 
