@@ -68,6 +68,8 @@ def _build_html(orders: list[dict]) -> str:
         size = (order.get("buy_size") or "").strip().upper()
         length = (order.get("buy_length") or "").strip().title()
         fit = (order.get("buy_fit") or "").strip()
+        fit_upper = (order.get("buy_fit_upper") or "").strip()
+        fit_lower = (order.get("buy_fit_lower") or "").strip()
         waist_rise = (order.get("buy_waist_rise") or "").strip()
         waist_fit = (order.get("buy_waist_fit") or "").strip()
         waist_def = (order.get("buy_waist_def") or "").strip()
@@ -160,6 +162,8 @@ def _build_html(orders: list[dict]) -> str:
                             <span class="spec-value">{length or '—'}</span>
                         </div>
                         {'<div class="spec-row"><span class="spec-label">Fit</span><span class="spec-value">' + fit + '</span></div>' if fit else ''}
+                        {'<div class="spec-row"><span class="spec-label">Top fit</span><span class="spec-value">' + fit_upper + '</span></div>' if fit_upper else ''}
+                        {'<div class="spec-row"><span class="spec-label">Bottom fit</span><span class="spec-value">' + fit_lower + '</span></div>' if fit_lower else ''}
                         {'<div class="spec-row"><span class="spec-label">Waist rise</span><span class="spec-value">' + waist_rise + '</span></div>' if waist_rise else ''}
                         {'<div class="spec-row"><span class="spec-label">Waist fit</span><span class="spec-value">' + waist_fit + '</span></div>' if waist_fit else ''}
                         {'<div class="spec-row"><span class="spec-label">Waist def</span><span class="spec-value">' + waist_def + '</span></div>' if waist_def else ''}

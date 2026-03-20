@@ -53,6 +53,8 @@ STATE_BUY_WAIST_RISE = "BUY_WAIST_RISE"
 STATE_BUY_WAIST_FIT = "BUY_WAIST_FIT"
 STATE_BUY_WAIST_DEF = "BUY_WAIST_DEF"
 STATE_BUY_CUFFS = "BUY_CUFFS"
+STATE_BUY_COORD_FIT_UPPER = "BUY_COORD_FIT_UPPER"
+STATE_BUY_COORD_FIT_LOWER = "BUY_COORD_FIT_LOWER"
 STATE_BUY_CONFIRM = "BUY_CONFIRM"
 
 MAX_GENERATIONS = 10
@@ -256,6 +258,12 @@ class FlowEngine:
 
         elif state == STATE_BUY_CUFFS:
             await self._send_cuffs_selection(wa_id)
+
+        elif state == STATE_BUY_COORD_FIT_UPPER:
+            await self._send_coord_fit_upper(wa_id)
+
+        elif state == STATE_BUY_COORD_FIT_LOWER:
+            await self._send_coord_fit_lower(wa_id)
 
         elif state == STATE_BUY_CONFIRM:
             await self.wa.send_text(
@@ -2415,8 +2423,7 @@ class FlowEngine:
         top_length = (sess.get("buy_length") or "").strip()
         combined = f"{top_length}, Bottom: {length}"
         await self.store.set_fields(wa_id, {"buy_length": combined})
-        # Coord sets buy flow options handled separately — go to confirm for now
-        await self._send_buy_confirm(wa_id)
+        await self._send_next_coord_buy_option(wa_id)
 
     async def handle_buy_size(self, wa_id: str, bid: str) -> None:
         await self.store.touch(wa_id)
@@ -2618,7 +2625,105 @@ class FlowEngine:
             await self._send_cuffs_selection(wa_id)
             return
         await self.store.set_fields(wa_id, {"buy_cuffs": cuff})
+
+        sess = await self.store.get(wa_id) or {}
+        c = self._category_key((sess.get("design_category") or "").strip())
+        if c == "coord sets":
+            await self._send_next_coord_buy_option(wa_id)
+        else:
+            await self._send_buy_confirm(wa_id)
+
+    # ------------------------------------------------------------------
+    # BUY FLOW — coord set specific options
+    # ------------------------------------------------------------------
+
+    def _coord_types(self, sess: dict) -> tuple:
+        """Extract top_type and bottom_type from coord set session."""
+        mod_kv_raw = (sess.get("design_mod_kv") or "{}").strip() or "{}"
+        try:
+            mod_kv = json.loads(mod_kv_raw)
+        except Exception:
+            mod_kv = {}
+        top_type = (mod_kv.get("top_type") or "").strip().lower()
+        bottom_type = (mod_kv.get("bottom_type") or "").strip().lower()
+        return top_type, bottom_type
+
+    async def _send_next_coord_buy_option(self, wa_id: str) -> None:
+        """Route to the next buy option for coord sets based on what's collected."""
+        sess = await self.store.get(wa_id) or {}
+        top_type, bottom_type = self._coord_types(sess)
+
+        # Upper options first
+        if top_type in ("shirt", "tee") and not (sess.get("buy_fit_upper") or "").strip():
+            await self._send_coord_fit_upper(wa_id)
+            return
+        if top_type == "shirt" and not (sess.get("buy_cuffs") or "").strip():
+            await self._send_cuffs_selection(wa_id)
+            return
+
+        # Lower options
+        if bottom_type == "pants" and not (sess.get("buy_fit_lower") or "").strip():
+            await self._send_coord_fit_lower(wa_id)
+            return
+        if bottom_type in ("pants", "skirt") and not (sess.get("buy_waist_rise") or "").strip():
+            await self._send_waist_rise_selection(wa_id)
+            return
+
         await self._send_buy_confirm(wa_id)
+
+    async def _send_coord_fit_upper(self, wa_id: str) -> None:
+        """Send fit options for coord set upper garment (shirt/tee)."""
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_COORD_FIT_UPPER})
+        await self.store.touch(wa_id)
+        rows = [
+            {"id": "CFITU_SLIM", "title": "Slim", "description": "Body-hugging fitted cut"},
+            {"id": "CFITU_REGULAR", "title": "Regular", "description": "Standard comfortable fit"},
+            {"id": "CFITU_OVERSIZED", "title": "Oversized", "description": "Loose relaxed silhouette"},
+            {"id": "CFITU_NO_PREF", "title": "No preference", "description": "We'll pick the best option"},
+        ]
+        await self.wa.send_list(wa_id, "Select your preferred top fit:", "Choose", sections=[{"title": "Top fit", "rows": rows}])
+
+    async def _send_coord_fit_lower(self, wa_id: str) -> None:
+        """Send fit options for coord set lower garment (pants)."""
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_COORD_FIT_LOWER})
+        await self.store.touch(wa_id)
+        rows = [
+            {"id": "CFITL_SLIM", "title": "Slim", "description": "Fitted through the leg"},
+            {"id": "CFITL_REGULAR", "title": "Regular", "description": "Standard comfortable fit"},
+            {"id": "CFITL_PALAZZO", "title": "Palazzo", "description": "Wide flowing legs"},
+            {"id": "CFITL_NO_PREF", "title": "No preference", "description": "We'll pick the best option"},
+        ]
+        await self.wa.send_list(wa_id, "Select your preferred bottom fit:", "Choose", sections=[{"title": "Bottom fit", "rows": rows}])
+
+    async def handle_buy_coord_fit_upper(self, wa_id: str, bid: str) -> None:
+        await self.store.touch(wa_id)
+        fit_map = {
+            "CFITU_SLIM": "Slim",
+            "CFITU_REGULAR": "Regular",
+            "CFITU_OVERSIZED": "Oversized",
+            "CFITU_NO_PREF": "No preference",
+        }
+        fit = fit_map.get(bid)
+        if not fit:
+            await self._send_coord_fit_upper(wa_id)
+            return
+        await self.store.set_fields(wa_id, {"buy_fit_upper": fit})
+        await self._send_next_coord_buy_option(wa_id)
+
+    async def handle_buy_coord_fit_lower(self, wa_id: str, bid: str) -> None:
+        await self.store.touch(wa_id)
+        fit_map = {
+            "CFITL_SLIM": "Slim",
+            "CFITL_REGULAR": "Regular",
+            "CFITL_PALAZZO": "Palazzo",
+            "CFITL_NO_PREF": "No preference",
+        }
+        fit = fit_map.get(bid)
+        if not fit:
+            await self._send_coord_fit_lower(wa_id)
+            return
+        await self.store.set_fields(wa_id, {"buy_fit_lower": fit})
+        await self._send_next_coord_buy_option(wa_id)
 
     async def _send_buy_confirm(self, wa_id: str) -> None:
         """Build and send order confirmation summary."""
@@ -2641,6 +2746,8 @@ class FlowEngine:
             await self.wa.send_image(wa_id, image_url=image_url, caption="Your design 💖")
 
         fit = (sess.get("buy_fit") or "").strip()
+        fit_upper = (sess.get("buy_fit_upper") or "").strip()
+        fit_lower = (sess.get("buy_fit_lower") or "").strip()
         waist_rise = (sess.get("buy_waist_rise") or "").strip()
         waist_fit = (sess.get("buy_waist_fit") or "").strip()
         waist_def = (sess.get("buy_waist_def") or "").strip()
@@ -2648,6 +2755,8 @@ class FlowEngine:
 
         length_line = f"Length: {length}\n" if length else ""
         fit_line = f"Fit: {fit}\n" if fit else ""
+        fit_upper_line = f"Top fit: {fit_upper}\n" if fit_upper else ""
+        fit_lower_line = f"Bottom fit: {fit_lower}\n" if fit_lower else ""
         waist_rise_line = f"Waist rise: {waist_rise}\n" if waist_rise else ""
         waist_fit_line = f"Waist fit: {waist_fit}\n" if waist_fit else ""
         waist_def_line = f"Waist definition: {waist_def}\n" if waist_def else ""
@@ -2662,6 +2771,8 @@ class FlowEngine:
             f"Size: {size}\n"
             f"{length_line}"
             f"{fit_line}"
+            f"{fit_upper_line}"
+            f"{fit_lower_line}"
             f"{waist_rise_line}"
             f"{waist_fit_line}"
             f"{waist_def_line}"
