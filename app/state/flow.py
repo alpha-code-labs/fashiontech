@@ -1457,7 +1457,9 @@ class FlowEngine:
                 bt = (bottom_type or "").strip().lower()
                 if bt == "skirt":
                     return [("pencil", "Pencil"), ("a_line", "A-line"), ("pleated", "Pleated")]
-                else:  # pants, shorts, or unknown
+                elif bt == "shorts":
+                    return [("slim", "Slim"), ("regular", "Regular")]
+                else:  # pants or unknown
                     return [("slim", "Slim"), ("regular", "Regular"), ("palazzo", "Palazzo")]
 
         if c == "blouse":
