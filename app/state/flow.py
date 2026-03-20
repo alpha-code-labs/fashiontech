@@ -48,6 +48,11 @@ STATE_BUY_EMAIL = "BUY_EMAIL"
 STATE_BUY_SIZE = "BUY_SIZE"
 STATE_BUY_LENGTH = "BUY_LENGTH"
 STATE_BUY_LENGTH_BOTTOM = "BUY_LENGTH_BOTTOM"
+STATE_BUY_FIT = "BUY_FIT"
+STATE_BUY_WAIST_RISE = "BUY_WAIST_RISE"
+STATE_BUY_WAIST_FIT = "BUY_WAIST_FIT"
+STATE_BUY_WAIST_DEF = "BUY_WAIST_DEF"
+STATE_BUY_CUFFS = "BUY_CUFFS"
 STATE_BUY_CONFIRM = "BUY_CONFIRM"
 
 MAX_GENERATIONS = 10
@@ -236,6 +241,21 @@ class FlowEngine:
 
         elif state == STATE_BUY_LENGTH_BOTTOM:
             await self._send_bottom_length_selection(wa_id)
+
+        elif state == STATE_BUY_FIT:
+            await self._send_fit_selection(wa_id)
+
+        elif state == STATE_BUY_WAIST_RISE:
+            await self._send_waist_rise_selection(wa_id)
+
+        elif state == STATE_BUY_WAIST_FIT:
+            await self._send_waist_fit_selection(wa_id)
+
+        elif state == STATE_BUY_WAIST_DEF:
+            await self._send_waist_def_selection(wa_id)
+
+        elif state == STATE_BUY_CUFFS:
+            await self._send_cuffs_selection(wa_id)
 
         elif state == STATE_BUY_CONFIRM:
             await self.wa.send_text(
@@ -1263,7 +1283,6 @@ class FlowEngine:
             base += [
                 ("sleeves", "Sleeves"),
                 ("neckline", "Neckline"),
-                ("waist_fit", "Waist fit"),
                 ("silhouette", "Silhouette"),
                 ("hem_shape", "Hem shape"),
                 ("back_detail", "Back detail"),
@@ -1272,28 +1291,23 @@ class FlowEngine:
             base += [
                 ("sleeves", "Sleeves"),
                 ("neckline", "Neckline"),
-                ("fit", "Fit"),
                 ("hem", "Hem"),
                 ("back_detail", "Back detail"),
             ]
         elif c == "skirt":
             base += [
-                ("waist_rise", "Waist rise"),
                 ("silhouette", "Silhouette"),
                 ("slit", "Slit"),
                 ("hem_shape", "Hem shape"),
             ]
         elif c == "pants":
             base += [
-                ("fit", "Fit"),
-                ("rise", "Rise"),
                 ("waistband_style", "Waistband style"),
             ]
         elif c == "jumpsuit":
             base += [
                 ("sleeves", "Sleeves"),
                 ("neckline", "Neckline"),
-                ("waist_definition", "Waist definition"),
                 ("leg_fit", "Leg fit"),
                 ("back_detail", "Back detail"),
             ]
@@ -1309,8 +1323,6 @@ class FlowEngine:
             base += [
                 ("sleeves", "Sleeves"),
                 ("collar_type", "Collar type"),
-                ("fit", "Fit"),
-                ("cuffs", "Cuffs"),
                 ("hem", "Hem"),
             ]
         elif c == "coord sets":
@@ -1790,6 +1802,55 @@ class FlowEngine:
                     out[kk] = f"Set {label} to {vv} on BOTH pieces of the coord set. Keep everything else identical."
                 continue
 
+            # Top length prompts — Gemini-optimized with waistband anchor breaker (print handling baked in)
+            if c == "top" and kk == "length":
+                length_prompts = {
+                    "crop": (
+                        "PRIORITY: Apply this modification fully and visibly.\n"
+                        "RECONSTRUCTION (LENGTH):\n"
+                        "1. Change the upper-body garment (top) into a seamless, high-cut crop top.\n"
+                        "2. The new hem MUST terminate exactly at the mid-ribcage (lowest rib level).\n"
+                        "3. The original fabric and pattern below this new high hemline must be COMPLETELY REMOVED.\n"
+                        "COVERAGE (EXPOSURE):\n"
+                        "1. This modification MUST expose a significant, seamless area of bare midriff and the navel.\n"
+                        "2. The entire abdominal area between the new high hem and the lower garment's waistband MUST be rendered as smooth, photorealistic skin.\n"
+                        "BOUNDARY LOGIC (CRITICAL):\n"
+                        "1. Preserve the lower garment (pants/skirt) exactly as it appears.\n"
+                        "2. The AI must use the existing waistband as the hard 'stop point' for the exposed skin.\n"
+                        "3. DO NOT stretch the lower garment up to meet the short shirt; you must generate smooth skin in the gap.\n"
+                        "4. Strictly NO layering or visible undershirts."
+                    ),
+                    "regular": (
+                        "PRIORITY: Apply this modification fully and visibly.\n"
+                        "RECONSTRUCTION (LENGTH):\n"
+                        "1. Adjust the upper-body garment (top) to a standard waist-length.\n"
+                        "2. The hem MUST terminate exactly at the hip bone (iliac crest), perfectly covering the waistband of the lower garment.\n"
+                        "COVERAGE & FIT:\n"
+                        "1. NO bare midriff, navel, or lower body skin must be visible between the top and the pants.\n"
+                        "2. The fabric must create a smooth, unified drape down to the hip.\n"
+                        "CONSTRUCTION INTEGRITY (CRITICAL):\n"
+                        "1. Explicitly REMOVE the finished appearance of the lower garment's (pants) waistband, integrating it seamlessly into the new, continuous drape of the single-piece top.\n"
+                        "2. Strictly NO layering. This is not a shirt over a shirt. The result must be one unified, seamless piece of fabric from the neckline to the hip hem.\n"
+                        "3. Seamlessly map the existing print/pattern across the entire new extended surface."
+                    ),
+                    "shirt": (
+                        "PRIORITY: Apply this modification fully and visibly.\n"
+                        "RECONSTRUCTION (LENGTH):\n"
+                        "1. Extend the upper-body garment (top) into a longline tunic length.\n"
+                        "2. The new hem MUST reach the mid-thigh level, completely covering the hips, the pelvic area, and the upper part of the legs.\n"
+                        "SILHOUETTE & FLOW:\n"
+                        "1. The fabric must maintain a smooth, single-piece vertical drape from the chest down to the mid-thigh.\n"
+                        "CONSTRUCTION INTEGRITY (CRITICAL):\n"
+                        "1. Explicitly REMOVE the finished appearance of the lower garment's (pants) waistband, integrating it seamlessly into the new, continuous drape of the single-piece long tunic.\n"
+                        "2. Strictly NO layering; the result must be one unified, unbroken piece of fabric from the neckline to the thigh hem.\n"
+                        "3. Seamlessly map and extend the existing print/pattern all the way to the new mid-thigh hemline, ensuring the transition is invisible.\n"
+                        "BOUNDARY LOGIC:\n"
+                        "1. The lower garment (pants/leggings) should be visible only from the mid-thigh downward."
+                    ),
+                }
+                out[kk] = length_prompts.get(vv, f"Set length to {vv}. Keep everything else identical.")
+                continue
+
             # Pants fit remapping: "regular" label actually means wide-leg for Gemini
             if c == "pants" and kk == "fit":
                 fit_map = {"slim": "slim", "regular": "wide", "palazzo": "palazzo"}
@@ -1873,11 +1934,14 @@ class FlowEngine:
             pattern_image_bytes = await self._download_pattern_bytes_if_possible(persistent_print_ref)
             if pattern_image_bytes:
                 pattern_mode = "preserve"
-                modifications["print_preservation"] = (
-                    "The garment currently has a print/pattern on it (visible in the base image). "
-                    "PRESERVE this print/pattern EXACTLY — same motifs, same placement, same detail. "
-                    "Do NOT remove, fade, or simplify the print while applying other changes."
-                )
+                # Length modifications have print handling baked into the length prompt — skip separate key
+                is_length_mod = "length" in kv
+                if not is_length_mod:
+                    modifications["print_preservation"] = (
+                        "The garment currently has a print/pattern on it (visible in the base image). "
+                        "PRESERVE this print/pattern EXACTLY — same motifs, same placement, same detail. "
+                        "Do NOT remove, fade, or simplify the print while applying other changes."
+                    )
 
         brief = DesignBrief(
             occasion=base_occ,
@@ -2182,49 +2246,59 @@ class FlowEngine:
     # DESIGN BUY FLOW (size → length → confirm → order logged)
     # -------------------------
 
+    _NO_PREF = ("no_preference", "No preference", "We'll pick the best option")
+
     def _length_options_for_category(self, cat: str) -> list:
         """Returns [(value, button_title, description)] for length selection at checkout."""
         c = self._category_key(cat)
+        np = self._NO_PREF
         if c == "dress":
             return [
                 ("mini", "Mini", "Hemline at mid-thigh, above the knee"),
                 ("midi", "Midi", "Hemline below the knee, around mid-calf"),
                 ("maxi", "Maxi", "Hemline at the ankles or floor"),
+                np,
             ]
         if c == "top":
             return [
                 ("crop", "Crop", "Ends at mid-ribcage, navel visible"),
                 ("regular", "Regular", "Ends at the hip, covers waistband"),
                 ("shirt", "Shirt", "Ends well below the hip, like an untucked shirt"),
+                np,
             ]
         if c == "skirt":
             return [
                 ("mini", "Mini", "Hemline at mid-thigh, above the knee"),
                 ("midi", "Midi", "Hemline below the knee, around mid-calf"),
                 ("maxi", "Maxi", "Hemline at the ankles or floor"),
+                np,
             ]
         if c == "pants":
             return [
                 ("full", "Full length", "Hem reaches the ankle/shoe"),
                 ("ankle", "Ankle", "Hem at the ankle bone"),
                 ("cropped", "Cropped", "Hem at mid-calf, above the ankle"),
+                np,
             ]
         if c == "jumpsuit":
             return [
                 ("full", "Full length", "Legs reach the ankles"),
                 ("cropped", "Cropped", "Legs end at mid-calf"),
+                np,
             ]
         if c == "jacket":
             return [
                 ("cropped", "Cropped", "Ends above the waist, showing midriff"),
                 ("waist", "Waist", "Ends exactly at the waist"),
                 ("hip", "Hip", "Ends at the hip"),
+                np,
             ]
         if c == "shirts":
             return [
                 ("tucked", "Tucked", "Short enough to tuck into bottoms"),
                 ("untucked", "Untucked", "Hemline at the hip"),
                 ("longline", "Longline", "Hemline at mid-thigh"),
+                np,
             ]
         if c == "coord sets":
             # Top piece length — bottom handled separately
@@ -2232,18 +2306,21 @@ class FlowEngine:
                 ("crop", "Crop", "Top ends at mid-ribcage"),
                 ("waist", "Waist", "Top ends at the waist"),
                 ("hip", "Hip", "Top ends at the hip"),
+                np,
             ]
         if c == "blouse":
             return [
                 ("crop", "Crop", "Ends at mid-ribcage, navel visible"),
                 ("waist", "Waist", "Ends exactly at the waist"),
                 ("hip", "Hip", "Hemline reaches the hip"),
+                np,
             ]
         if c == "t-shirts":
             return [
                 ("crop", "Crop", "Ends at mid-ribcage, navel visible"),
                 ("regular", "Regular", "Hemline at the hip"),
                 ("longline", "Longline", "Hemline at mid-thigh"),
+                np,
             ]
         return []
 
@@ -2253,30 +2330,37 @@ class FlowEngine:
             ("short", "Short", "Hemline above the knee"),
             ("midi", "Midi", "Hemline below the knee, around mid-calf"),
             ("full", "Full", "Hemline at the ankle"),
+            self._NO_PREF,
         ]
 
     async def _send_length_selection(self, wa_id: str) -> None:
-        """Send length options as WhatsApp buttons with descriptions."""
+        """Send length options as WhatsApp list with descriptions."""
         sess = await self.store.get(wa_id) or {}
         cat = (sess.get("design_category") or "").strip()
         c = self._category_key(cat)
         options = self._length_options_for_category(cat)
 
         if not options:
-            await self._send_buy_confirm(wa_id)
+            await self._send_next_buy_option(wa_id)
             return
 
         await self.store.set_fields(wa_id, {"state": STATE_BUY_LENGTH})
         await self.store.touch(wa_id)
 
-        header = "Select your preferred TOP length:\n" if c == "coord sets" else "Select your preferred length:\n"
-        desc_lines = [header]
-        for val, title, desc in options:
-            desc_lines.append(f"• {title} — {desc}")
-        body = "\n".join(desc_lines)
+        header = "Select your preferred TOP length:" if c == "coord sets" else "Select your preferred length:"
 
-        buttons = [("LENGTH_" + val.upper(), title) for val, title, _ in options]
-        await self.wa.send_buttons(wa_id, body, buttons)
+        if len(options) <= 3:
+            # Use buttons for ≤3 options
+            desc_lines = [header + "\n"]
+            for val, title, desc in options:
+                desc_lines.append(f"• {title} — {desc}")
+            body = "\n".join(desc_lines)
+            buttons = [("LENGTH_" + val.upper(), title) for val, title, _ in options]
+            await self.wa.send_buttons(wa_id, body, buttons)
+        else:
+            # Use list for >3 options
+            rows = [{"id": "LENGTH_" + val.upper(), "title": title, "description": desc} for val, title, desc in options]
+            await self.wa.send_list(wa_id, header, "Choose", sections=[{"title": "Length", "rows": rows}])
 
     async def _send_bottom_length_selection(self, wa_id: str) -> None:
         """Send bottom length options for coord sets."""
@@ -2284,13 +2368,16 @@ class FlowEngine:
         await self.store.touch(wa_id)
 
         options = self._coord_bottom_length_options()
-        desc_lines = ["Now select your preferred BOTTOM length:\n"]
-        for val, title, desc in options:
-            desc_lines.append(f"• {title} — {desc}")
-        body = "\n".join(desc_lines)
-
-        buttons = [("BLEN_" + val.upper(), title) for val, title, _ in options]
-        await self.wa.send_buttons(wa_id, body, buttons)
+        if len(options) <= 3:
+            desc_lines = ["Now select your preferred BOTTOM length:\n"]
+            for val, title, desc in options:
+                desc_lines.append(f"• {title} — {desc}")
+            body = "\n".join(desc_lines)
+            buttons = [("BLEN_" + val.upper(), title) for val, title, _ in options]
+            await self.wa.send_buttons(wa_id, body, buttons)
+        else:
+            rows = [{"id": "BLEN_" + val.upper(), "title": title, "description": desc} for val, title, desc in options]
+            await self.wa.send_list(wa_id, "Select your preferred BOTTOM length:", "Choose", sections=[{"title": "Bottom length", "rows": rows}])
 
     async def handle_buy_length(self, wa_id: str, bid: str) -> None:
         """Handle length button selection at checkout."""
@@ -2312,7 +2399,7 @@ class FlowEngine:
             await self._send_bottom_length_selection(wa_id)
         else:
             await self.store.set_fields(wa_id, {"buy_length": length})
-            await self._send_buy_confirm(wa_id)
+            await self._send_next_buy_option(wa_id)
 
     async def handle_buy_bottom_length(self, wa_id: str, bid: str) -> None:
         """Handle bottom length button selection for coord sets."""
@@ -2328,6 +2415,7 @@ class FlowEngine:
         top_length = (sess.get("buy_length") or "").strip()
         combined = f"{top_length}, Bottom: {length}"
         await self.store.set_fields(wa_id, {"buy_length": combined})
+        # Coord sets buy flow options handled separately — go to confirm for now
         await self._send_buy_confirm(wa_id)
 
     async def handle_buy_size(self, wa_id: str, bid: str) -> None:
@@ -2349,6 +2437,189 @@ class FlowEngine:
         await self.store.set_fields(wa_id, {"buy_size": size})
         await self._send_length_selection(wa_id)
 
+    # ------------------------------------------------------------------
+    # BUY FLOW — category-specific options (fit, waist rise, etc.)
+    # ------------------------------------------------------------------
+
+    async def _send_next_buy_option(self, wa_id: str) -> None:
+        """Route to the next buy-flow option based on category."""
+        sess = await self.store.get(wa_id) or {}
+        c = self._category_key((sess.get("design_category") or "").strip())
+        if c == "dress":
+            await self._send_waist_fit_selection(wa_id)
+        elif c == "top":
+            await self._send_fit_selection(wa_id)
+        elif c == "skirt":
+            await self._send_waist_rise_selection(wa_id)
+        elif c == "pants":
+            await self._send_fit_selection(wa_id)
+        elif c == "jumpsuit":
+            await self._send_waist_def_selection(wa_id)
+        elif c == "shirts":
+            await self._send_fit_selection(wa_id)
+        else:
+            await self._send_buy_confirm(wa_id)
+
+    async def _send_fit_selection(self, wa_id: str) -> None:
+        """Send fit options — varies by category."""
+        sess = await self.store.get(wa_id) or {}
+        c = self._category_key((sess.get("design_category") or "").strip())
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_FIT})
+        await self.store.touch(wa_id)
+
+        if c == "pants":
+            rows = [
+                {"id": "FIT_SLIM", "title": "Slim", "description": "Fitted through the leg"},
+                {"id": "FIT_REGULAR", "title": "Regular", "description": "Standard comfortable fit"},
+                {"id": "FIT_PALAZZO", "title": "Palazzo", "description": "Wide flowing legs"},
+                {"id": "FIT_NO_PREF", "title": "No preference", "description": "We'll pick the best option"},
+            ]
+        else:
+            rows = [
+                {"id": "FIT_SLIM", "title": "Slim", "description": "Body-hugging fitted cut"},
+                {"id": "FIT_REGULAR", "title": "Regular", "description": "Standard comfortable fit"},
+                {"id": "FIT_OVERSIZED", "title": "Oversized", "description": "Loose relaxed silhouette"},
+                {"id": "FIT_NO_PREF", "title": "No preference", "description": "We'll pick the best option"},
+            ]
+        await self.wa.send_list(wa_id, "Select your preferred fit:", "Choose", sections=[{"title": "Fit", "rows": rows}])
+
+    async def _send_waist_rise_selection(self, wa_id: str) -> None:
+        """Send waist rise options (skirt / pants)."""
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_WAIST_RISE})
+        await self.store.touch(wa_id)
+        rows = [
+            {"id": "WRISE_HIGH", "title": "High", "description": "Sits at the natural waist"},
+            {"id": "WRISE_MID", "title": "Mid", "description": "Sits between waist and hips"},
+            {"id": "WRISE_LOW", "title": "Low", "description": "Sits at the hips"},
+            {"id": "WRISE_NO_PREF", "title": "No preference", "description": "We'll pick the best option"},
+        ]
+        await self.wa.send_list(wa_id, "Select your preferred waist rise:", "Choose", sections=[{"title": "Waist rise", "rows": rows}])
+
+    async def _send_waist_fit_selection(self, wa_id: str) -> None:
+        """Send waist fit options (dress)."""
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_WAIST_FIT})
+        await self.store.touch(wa_id)
+        rows = [
+            {"id": "WFIT_CINCHED", "title": "Cinched", "description": "Gathered at the waist"},
+            {"id": "WFIT_EMPIRE", "title": "Empire", "description": "Fitted just below the bust"},
+            {"id": "WFIT_DROPPED", "title": "Dropped", "description": "Waist seam sits below natural waist"},
+            {"id": "WFIT_RELAXED", "title": "Relaxed", "description": "Loose, undefined waistline"},
+            {"id": "WFIT_NO_PREF", "title": "No preference", "description": "We'll pick the best option"},
+        ]
+        await self.wa.send_list(wa_id, "Select your preferred waist fit:", "Choose", sections=[{"title": "Waist fit", "rows": rows}])
+
+    async def _send_waist_def_selection(self, wa_id: str) -> None:
+        """Send waist definition options (jumpsuit)."""
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_WAIST_DEF})
+        await self.store.touch(wa_id)
+        rows = [
+            {"id": "WDEF_BELTED", "title": "Belted", "description": "Defined waist with a belt"},
+            {"id": "WDEF_CINCHED", "title": "Cinched", "description": "Gathered at the waist"},
+            {"id": "WDEF_STRAIGHT", "title": "Straight", "description": "No waist definition, straight cut"},
+            {"id": "WDEF_NO_PREF", "title": "No preference", "description": "We'll pick the best option"},
+        ]
+        await self.wa.send_list(wa_id, "Select your preferred waist definition:", "Choose", sections=[{"title": "Waist definition", "rows": rows}])
+
+    async def _send_cuffs_selection(self, wa_id: str) -> None:
+        """Send cuff style options (shirts)."""
+        await self.store.set_fields(wa_id, {"state": STATE_BUY_CUFFS})
+        await self.store.touch(wa_id)
+        await self.wa.send_buttons(
+            wa_id,
+            "Select your preferred cuff style:",
+            [
+                ("CUFF_BUTTONED", "Buttoned"),
+                ("CUFF_ELASTIC", "Elastic"),
+                ("CUFF_NO_PREF", "No preference"),
+            ],
+        )
+
+    # --- Handlers for category-specific buy options ---
+
+    async def handle_buy_fit(self, wa_id: str, bid: str) -> None:
+        await self.store.touch(wa_id)
+        fit_map = {
+            "FIT_SLIM": "Slim",
+            "FIT_REGULAR": "Regular",
+            "FIT_OVERSIZED": "Oversized",
+            "FIT_PALAZZO": "Palazzo",
+            "FIT_NO_PREF": "No preference",
+        }
+        fit = fit_map.get(bid)
+        if not fit:
+            await self._send_fit_selection(wa_id)
+            return
+        await self.store.set_fields(wa_id, {"buy_fit": fit})
+
+        sess = await self.store.get(wa_id) or {}
+        c = self._category_key((sess.get("design_category") or "").strip())
+        if c == "pants":
+            await self._send_waist_rise_selection(wa_id)
+        elif c == "shirts":
+            await self._send_cuffs_selection(wa_id)
+        else:
+            await self._send_buy_confirm(wa_id)
+
+    async def handle_buy_waist_rise(self, wa_id: str, bid: str) -> None:
+        await self.store.touch(wa_id)
+        rise_map = {
+            "WRISE_HIGH": "High",
+            "WRISE_MID": "Mid",
+            "WRISE_LOW": "Low",
+            "WRISE_NO_PREF": "No preference",
+        }
+        rise = rise_map.get(bid)
+        if not rise:
+            await self._send_waist_rise_selection(wa_id)
+            return
+        await self.store.set_fields(wa_id, {"buy_waist_rise": rise})
+        await self._send_buy_confirm(wa_id)
+
+    async def handle_buy_waist_fit(self, wa_id: str, bid: str) -> None:
+        await self.store.touch(wa_id)
+        wfit_map = {
+            "WFIT_CINCHED": "Cinched",
+            "WFIT_EMPIRE": "Empire",
+            "WFIT_DROPPED": "Dropped",
+            "WFIT_RELAXED": "Relaxed",
+            "WFIT_NO_PREF": "No preference",
+        }
+        wfit = wfit_map.get(bid)
+        if not wfit:
+            await self._send_waist_fit_selection(wa_id)
+            return
+        await self.store.set_fields(wa_id, {"buy_waist_fit": wfit})
+        await self._send_buy_confirm(wa_id)
+
+    async def handle_buy_waist_def(self, wa_id: str, bid: str) -> None:
+        await self.store.touch(wa_id)
+        wdef_map = {
+            "WDEF_BELTED": "Belted",
+            "WDEF_CINCHED": "Cinched",
+            "WDEF_STRAIGHT": "Straight",
+            "WDEF_NO_PREF": "No preference",
+        }
+        wdef = wdef_map.get(bid)
+        if not wdef:
+            await self._send_waist_def_selection(wa_id)
+            return
+        await self.store.set_fields(wa_id, {"buy_waist_def": wdef})
+        await self._send_buy_confirm(wa_id)
+
+    async def handle_buy_cuffs(self, wa_id: str, bid: str) -> None:
+        await self.store.touch(wa_id)
+        cuff_map = {
+            "CUFF_BUTTONED": "Buttoned",
+            "CUFF_ELASTIC": "Elastic",
+            "CUFF_NO_PREF": "No preference",
+        }
+        cuff = cuff_map.get(bid)
+        if not cuff:
+            await self._send_cuffs_selection(wa_id)
+            return
+        await self.store.set_fields(wa_id, {"buy_cuffs": cuff})
+        await self._send_buy_confirm(wa_id)
+
     async def _send_buy_confirm(self, wa_id: str) -> None:
         """Build and send order confirmation summary."""
         await self.store.set_fields(wa_id, {"state": STATE_BUY_CONFIRM})
@@ -2369,7 +2640,19 @@ class FlowEngine:
             image_url = f"{public_base_url}{rel_image_path}"
             await self.wa.send_image(wa_id, image_url=image_url, caption="Your design 💖")
 
+        fit = (sess.get("buy_fit") or "").strip()
+        waist_rise = (sess.get("buy_waist_rise") or "").strip()
+        waist_fit = (sess.get("buy_waist_fit") or "").strip()
+        waist_def = (sess.get("buy_waist_def") or "").strip()
+        cuffs = (sess.get("buy_cuffs") or "").strip()
+
         length_line = f"Length: {length}\n" if length else ""
+        fit_line = f"Fit: {fit}\n" if fit else ""
+        waist_rise_line = f"Waist rise: {waist_rise}\n" if waist_rise else ""
+        waist_fit_line = f"Waist fit: {waist_fit}\n" if waist_fit else ""
+        waist_def_line = f"Waist definition: {waist_def}\n" if waist_def else ""
+        cuffs_line = f"Cuffs: {cuffs}\n" if cuffs else ""
+
         summary = (
             f"Your order summary 📋\n\n"
             f"Category: {category}\n"
@@ -2377,7 +2660,12 @@ class FlowEngine:
             f"Color: {color}\n"
             f"Occasion: {occasion}\n"
             f"Size: {size}\n"
-            f"{length_line}\n"
+            f"{length_line}"
+            f"{fit_line}"
+            f"{waist_rise_line}"
+            f"{waist_fit_line}"
+            f"{waist_def_line}"
+            f"{cuffs_line}\n"
             f"Confirm your order? 💖"
         )
 

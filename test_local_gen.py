@@ -151,12 +151,13 @@ async def generate_modified(category: str, color: str, base_rel_path: str,
         # Production guard: only set preserve mode if bytes were loaded (flow.py line 1849)
         if pattern_bytes:
             pattern_mode = "preserve"
-            # EXACT text from production flow.py line 1851-1854
-            modifications["print_preservation"] = (
-                "The garment currently has a print/pattern on it (visible in the base image). "
-                "PRESERVE this print/pattern EXACTLY — same motifs, same placement, same detail. "
-                "Do NOT remove, fade, or simplify the print while applying other changes."
-            )
+            # Length modifications have print handling baked into the length prompt — skip separate key
+            if field != "length":
+                modifications["print_preservation"] = (
+                    "The garment currently has a print/pattern on it (visible in the base image). "
+                    "PRESERVE this print/pattern EXACTLY — same motifs, same placement, same detail. "
+                    "Do NOT remove, fade, or simplify the print while applying other changes."
+                )
 
     print(f"Production prompt: {modifications}")
     if persistent_print_ref:

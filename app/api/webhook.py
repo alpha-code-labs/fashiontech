@@ -33,6 +33,11 @@ from app.state.flow import (
     STATE_BUY_SIZE,
     STATE_BUY_LENGTH,
     STATE_BUY_LENGTH_BOTTOM,
+    STATE_BUY_FIT,
+    STATE_BUY_WAIST_RISE,
+    STATE_BUY_WAIST_FIT,
+    STATE_BUY_WAIST_DEF,
+    STATE_BUY_CUFFS,
     STATE_BUY_CONFIRM,
 )
 
@@ -232,6 +237,26 @@ async def receive_webhook(request: Request) -> dict:
 
             if state == STATE_BUY_LENGTH_BOTTOM:
                 await flow.handle_buy_bottom_length(wa_id, bid)
+                return {"ok": True}
+
+            if state == STATE_BUY_FIT:
+                await flow.handle_buy_fit(wa_id, bid)
+                return {"ok": True}
+
+            if state == STATE_BUY_WAIST_RISE:
+                await flow.handle_buy_waist_rise(wa_id, bid)
+                return {"ok": True}
+
+            if state == STATE_BUY_WAIST_FIT:
+                await flow.handle_buy_waist_fit(wa_id, bid)
+                return {"ok": True}
+
+            if state == STATE_BUY_WAIST_DEF:
+                await flow.handle_buy_waist_def(wa_id, bid)
+                return {"ok": True}
+
+            if state == STATE_BUY_CUFFS:
+                await flow.handle_buy_cuffs(wa_id, bid)
                 return {"ok": True}
 
             if state == STATE_BUY_CONFIRM:

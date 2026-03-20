@@ -67,6 +67,11 @@ def _build_html(orders: list[dict]) -> str:
         color = (order.get("design_color") or "").strip().title()
         size = (order.get("buy_size") or "").strip().upper()
         length = (order.get("buy_length") or "").strip().title()
+        fit = (order.get("buy_fit") or "").strip()
+        waist_rise = (order.get("buy_waist_rise") or "").strip()
+        waist_fit = (order.get("buy_waist_fit") or "").strip()
+        waist_def = (order.get("buy_waist_def") or "").strip()
+        cuffs = (order.get("buy_cuffs") or "").strip()
         logged_ts = order.get("logged_at_ts", "")
         formatted_time = _format_ts(logged_ts) if logged_ts else ""
 
@@ -154,6 +159,11 @@ def _build_html(orders: list[dict]) -> str:
                             <span class="spec-label">Length</span>
                             <span class="spec-value">{length or '—'}</span>
                         </div>
+                        {'<div class="spec-row"><span class="spec-label">Fit</span><span class="spec-value">' + fit + '</span></div>' if fit else ''}
+                        {'<div class="spec-row"><span class="spec-label">Waist rise</span><span class="spec-value">' + waist_rise + '</span></div>' if waist_rise else ''}
+                        {'<div class="spec-row"><span class="spec-label">Waist fit</span><span class="spec-value">' + waist_fit + '</span></div>' if waist_fit else ''}
+                        {'<div class="spec-row"><span class="spec-label">Waist def</span><span class="spec-value">' + waist_def + '</span></div>' if waist_def else ''}
+                        {'<div class="spec-row"><span class="spec-label">Cuffs</span><span class="spec-value">' + cuffs + '</span></div>' if cuffs else ''}
                         {print_block}
                     </div>
                     {mod_block}
