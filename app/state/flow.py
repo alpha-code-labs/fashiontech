@@ -1347,10 +1347,11 @@ class FlowEngine:
 
         return base
 
-    def _field_options(self, cat: str, field: str) -> List[Tuple[str, str]]:
+    def _field_options(self, cat: str, field: str, bottom_type: str = "") -> List[Tuple[str, str]]:
         """
         Returns [(option_value, option_title)] for preset lists.
         For "color"/"color_top"/"color_bottom" we keep it free-text (handled separately).
+        bottom_type: for coord sets, the selected bottom type (pants/skirt/shorts) to show relevant fit options.
         """
         c = self._category_key(cat)
         f = (field or "").strip().lower()
@@ -1453,7 +1454,11 @@ class FlowEngine:
             if f == "bottom_type":
                 return [("pants", "Pants"), ("skirt", "Skirt"), ("shorts", "Shorts")]
             if f == "bottom_fit":
-                return [("wide", "Wide"), ("straight", "Straight"), ("pencil", "Pencil"), ("a_line", "A-line")]
+                bt = (bottom_type or "").strip().lower()
+                if bt == "skirt":
+                    return [("pencil", "Pencil"), ("a_line", "A-line"), ("pleated", "Pleated")]
+                else:  # pants, shorts, or unknown
+                    return [("slim", "Slim"), ("regular", "Regular"), ("palazzo", "Palazzo")]
 
         if c == "blouse":
             if f == "sleeves":
@@ -1560,7 +1565,17 @@ class FlowEngine:
                 await self.wa.send_text(wa_id, "What color are you thinking? 💖")
             return
 
-        options = self._field_options(cat, field)
+        # For coord sets bottom_fit, pass the selected bottom_type from session
+        bottom_type = ""
+        if field == "bottom_fit":
+            mod_kv_raw = (sess.get("design_mod_kv") or "{}").strip()
+            try:
+                mod_kv = json.loads(mod_kv_raw) if mod_kv_raw else {}
+            except Exception:
+                mod_kv = {}
+            bottom_type = mod_kv.get("bottom_type", "")
+
+        options = self._field_options(cat, field, bottom_type=bottom_type)
         if not options:
             # If we don't have presets for this field, fall back to text input safely
             await self.store.set_fields(wa_id, {"state": STATE_DESIGN_MODIFY_FIELD_TEXT, "design_mod_field": field})
@@ -1758,7 +1773,13 @@ class FlowEngine:
                     out[kk] = f"Change the TOP piece's {piece_field} to {vv}. Keep the bottom piece unchanged. Keep everything else identical."
                 elif kk.startswith("bottom_"):
                     piece_field = kk.replace("bottom_", "")
-                    out[kk] = f"Change the BOTTOM piece's {piece_field} to {vv}. Keep the top piece unchanged. Keep everything else identical."
+                    # Remap bottom_fit for pants/shorts: regular → wide
+                    if kk == "bottom_fit" and vv in ("slim", "regular", "palazzo"):
+                        fit_map = {"slim": "slim", "regular": "wide", "palazzo": "palazzo"}
+                        gemini_val = fit_map.get(vv, vv)
+                        out[kk] = f"Change the BOTTOM piece's fit to {gemini_val}. Keep the top piece unchanged. Keep everything else identical."
+                    else:
+                        out[kk] = f"Change the BOTTOM piece's {piece_field} to {vv}. Keep the top piece unchanged. Keep everything else identical."
                 elif kk == "color_top":
                     out[kk] = f"Change the TOP piece color to {vv}. Keep the bottom piece color unchanged."
                 elif kk == "color_bottom":
