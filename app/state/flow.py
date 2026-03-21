@@ -1278,10 +1278,12 @@ class FlowEngine:
             ],
         )
 
-    def _modify_fields_for_category(self, cat: str) -> List[Tuple[str, str]]:
+    def _modify_fields_for_category(self, cat: str, mod_kv: Optional[Dict] = None) -> List[Tuple[str, str]]:
         """
         Returns [(field_key, field_title)] for the conditional menu.
         Color is always present.
+        For coord sets, dynamically includes fields from the individual garment types
+        based on the selected top_type and bottom_type in mod_kv.
         """
         c = self._category_key(cat)
 
@@ -1334,17 +1336,33 @@ class FlowEngine:
                 ("hem", "Hem"),
             ]
         elif c == "coord sets":
-            base += [
-                ("top_type", "Top type"),
-                ("top_sleeves", "Top sleeves"),
-                ("top_neckline", "Top neckline"),
-                ("bottom_type", "Bottom type"),
-                ("bottom_fit", "Bottom fit"),
-                ("color_top", "Top color"),
-                ("color_bottom", "Bottom color"),
-            ]
-            # Note: For coord sets, we keep both Top color & Bottom color.
-            # The generic "Color" still exists, but we will not show it to avoid confusion.
+            # Dynamic fields based on selected top_type and bottom_type
+            mkv = mod_kv or {}
+            top_type = (mkv.get("top_type") or "").strip().lower()
+            bottom_type = (mkv.get("bottom_type") or "").strip().lower()
+
+            # Always allow changing the piece types
+            base += [("top_type", "Top type"), ("bottom_type", "Bottom type")]
+
+            # Upper fields — mapped from individual garment types
+            upper_fields_map = {
+                "shirt":  [("top_sleeves", "Top sleeves"), ("top_collar_type", "Top collar"), ("top_hem", "Top hem")],
+                "crop":   [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_back_detail", "Top back detail")],
+                "tee":    [("top_sleeve_length", "Top sleeve length"), ("top_neckline", "Top neckline"), ("top_fit", "Top fit"), ("top_hem", "Top hem")],
+                "blouse": [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_fit", "Top fit"), ("top_front_detail", "Top front detail"), ("top_back_detail", "Top back detail")],
+            }
+            base += upper_fields_map.get(top_type, [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline")])
+
+            # Lower fields — mapped from individual garment types
+            lower_fields_map = {
+                "pants":  [("bottom_waistband_style", "Bottom waistband")],
+                "skirt":  [("bottom_silhouette", "Bottom silhouette"), ("bottom_slit", "Bottom slit"), ("bottom_hem_shape", "Bottom hem shape")],
+                "shorts": [],
+            }
+            base += lower_fields_map.get(bottom_type, [])
+
+            # Colors — coord-specific
+            base += [("color_top", "Top color"), ("color_bottom", "Bottom color")]
             base = [x for x in base if x[0] != "color"]
         elif c == "blouse":
             base += [
@@ -1367,11 +1385,12 @@ class FlowEngine:
 
         return base
 
-    def _field_options(self, cat: str, field: str, bottom_type: str = "") -> List[Tuple[str, str]]:
+    def _field_options(self, cat: str, field: str, bottom_type: str = "", top_type: str = "") -> List[Tuple[str, str]]:
         """
         Returns [(option_value, option_title)] for preset lists.
         For "color"/"color_top"/"color_bottom" we keep it free-text (handled separately).
-        bottom_type: for coord sets, the selected bottom type (pants/skirt/shorts) to show relevant fit options.
+        bottom_type: for coord sets, the selected bottom type (pants/skirt/shorts).
+        top_type: for coord sets, the selected top type (shirt/crop/tee/blouse).
         """
         c = self._category_key(cat)
         f = (field or "").strip().lower()
@@ -1467,20 +1486,27 @@ class FlowEngine:
         if c == "coord sets":
             if f == "top_type":
                 return [("shirt", "Shirt"), ("crop", "Crop"), ("tee", "Tee"), ("blouse", "Blouse")]
-            if f == "top_sleeves":
-                return [("sleeveless", "Sleeveless"), ("short", "Short"), ("three_quarter", "3/4"), ("long", "Long")]
-            if f == "top_neckline":
-                return [("crew", "Crew"), ("v", "V-neck"), ("square", "Square"), ("halter", "Halter")]
             if f == "bottom_type":
                 return [("pants", "Pants"), ("skirt", "Skirt"), ("shorts", "Shorts")]
-            if f == "bottom_fit":
+
+            # Dynamic coord fields — strip prefix and resolve from standalone garment options
+            top_garment_map = {"shirt": "shirts", "crop": "top", "tee": "t-shirts", "blouse": "blouse"}
+            bottom_garment_map = {"pants": "pants", "skirt": "skirt", "shorts": "skirt"}
+
+            if f.startswith("top_"):
+                stripped = f[4:]  # e.g. top_collar_type → collar_type
+                tt = (top_type or "").strip().lower()
+                standalone_cat = top_garment_map.get(tt, "")
+                if standalone_cat:
+                    return self._field_options(standalone_cat, stripped)
+                return []
+            if f.startswith("bottom_"):
+                stripped = f[7:]  # e.g. bottom_silhouette → silhouette
                 bt = (bottom_type or "").strip().lower()
-                if bt == "skirt":
-                    return [("pencil", "Pencil"), ("a_line", "A-line"), ("pleated", "Pleated")]
-                elif bt == "shorts":
-                    return []  # no fit options for shorts
-                else:  # pants or unknown
-                    return [("slim", "Slim"), ("regular", "Regular"), ("palazzo", "Palazzo")]
+                standalone_cat = bottom_garment_map.get(bt, "")
+                if standalone_cat:
+                    return self._field_options(standalone_cat, stripped)
+                return []
 
         if c == "blouse":
             if f == "sleeves":
@@ -1525,8 +1551,17 @@ class FlowEngine:
             "top_type": "top type",
             "top_sleeves": "top sleeves",
             "top_neckline": "top neckline",
+            "top_collar_type": "top collar",
+            "top_hem": "top hem",
+            "top_back_detail": "top back detail",
+            "top_sleeve_length": "top sleeve length",
+            "top_fit": "top fit",
+            "top_front_detail": "top front detail",
             "bottom_type": "bottom type",
-            "bottom_fit": "bottom fit",
+            "bottom_waistband_style": "bottom waistband",
+            "bottom_silhouette": "bottom silhouette",
+            "bottom_slit": "bottom slit",
+            "bottom_hem_shape": "bottom hem shape",
             "sleeve_length": "sleeve length",
             "color": "color",
             "color_top": "top color",
@@ -1541,22 +1576,35 @@ class FlowEngine:
         sess = await self.store.get(wa_id) or {}
         cat = (sess.get("design_category") or "").strip()
 
-        fields = self._modify_fields_for_category(cat)
+        # For coord sets, pass mod_kv so fields are dynamic based on top/bottom type
+        mod_kv_raw = (sess.get("design_mod_kv") or "{}").strip() or "{}"
+        try:
+            mod_kv = json.loads(mod_kv_raw)
+        except Exception:
+            mod_kv = {}
+
+        fields = self._modify_fields_for_category(cat, mod_kv=mod_kv)
         rows = []
         for fkey, ftitle in fields:
             rows.append({"id": f"D_CHG_{fkey.upper()}", "title": ftitle})
 
-        # WhatsApp list row limit is 10 per section; our per-category designs respect this.
+        # WhatsApp list row limit is 10 per section.
+        # For coord sets, split into Top/Bottom sections to stay within the limit.
+        if self._category_key(cat) == "coord sets":
+            top_rows = [r for r in rows if r["id"].startswith("D_CHG_TOP_") or r["id"] == "D_CHG_COLOR_TOP"]
+            bottom_rows = [r for r in rows if r["id"].startswith("D_CHG_BOTTOM_") or r["id"] == "D_CHG_COLOR_BOTTOM"]
+            sections = [
+                {"title": "Top piece", "rows": top_rows},
+                {"title": "Bottom piece", "rows": bottom_rows},
+            ]
+        else:
+            sections = [{"title": "Modify", "rows": rows}]
+
         await self.wa.send_list(
             wa_id,
             "What are we changing? 💖✨",
             "Choose",
-            sections=[
-                {
-                    "title": "Modify",
-                    "rows": rows,
-                }
-            ],
+            sections=sections,
         )
 
     async def handle_design_modify_menu(self, wa_id: str, bid: str) -> None:
@@ -1587,17 +1635,19 @@ class FlowEngine:
                 await self.wa.send_text(wa_id, "What color are you thinking? 💖")
             return
 
-        # For coord sets bottom_fit, pass the selected bottom_type from session
+        # For coord sets, pass top_type and bottom_type so field options resolve correctly
+        top_type = ""
         bottom_type = ""
-        if field == "bottom_fit":
+        if self._category_key(cat) == "coord sets":
             mod_kv_raw = (sess.get("design_mod_kv") or "{}").strip()
             try:
                 mod_kv = json.loads(mod_kv_raw) if mod_kv_raw else {}
             except Exception:
                 mod_kv = {}
+            top_type = mod_kv.get("top_type", "")
             bottom_type = mod_kv.get("bottom_type", "")
 
-        options = self._field_options(cat, field, bottom_type=bottom_type)
+        options = self._field_options(cat, field, bottom_type=bottom_type, top_type=top_type)
         if not options:
             # If we don't have presets for this field, fall back to text input safely
             await self.store.set_fields(wa_id, {"state": STATE_DESIGN_MODIFY_FIELD_TEXT, "design_mod_field": field})
