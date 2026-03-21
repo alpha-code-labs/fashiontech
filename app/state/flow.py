@@ -1098,7 +1098,13 @@ class FlowEngine:
 
         # Step 3: Send options to user
         print_ref = f"local:{print_id}" if print_id else ""
-        mod_kv_init = json.dumps({"top_type": "shirt", "bottom_type": "pants"}) if self._category_key(category) == "coord sets" else "{}"
+        c = self._category_key(category)
+        if c == "coord sets":
+            mod_kv_init = json.dumps({"top_type": "shirt", "bottom_type": "pants"})
+        elif c == "skirt":
+            mod_kv_init = json.dumps({"silhouette": "a_line"})
+        else:
+            mod_kv_init = "{}"
 
         if len(options) == 1:
             # Only base succeeded (or only 1 slot reserved) — go straight to DESIGN_POST
@@ -1228,22 +1234,23 @@ class FlowEngine:
 
         if bid == "DESIGN_MODIFY":
             self.logger.log_step(wa_id, "DESIGN_MODIFY")
-            # For coord sets, preserve top_type/bottom_type across modify cycles
+            # Preserve persistent fields across modify cycles
             sess = await self.store.get(wa_id) or {}
-            init_kv = "{}"
-            if self._category_key((sess.get("design_category") or "")) == "coord sets":
-                old_kv_raw = (sess.get("design_mod_kv") or "{}").strip() or "{}"
-                try:
-                    old_kv = json.loads(old_kv_raw)
-                except Exception:
-                    old_kv = {}
-                preserved = {}
-                if old_kv.get("top_type"):
-                    preserved["top_type"] = old_kv["top_type"]
-                if old_kv.get("bottom_type"):
-                    preserved["bottom_type"] = old_kv["bottom_type"]
-                if preserved:
-                    init_kv = json.dumps(preserved)
+            old_kv_raw = (sess.get("design_mod_kv") or "{}").strip() or "{}"
+            try:
+                old_kv = json.loads(old_kv_raw)
+            except Exception:
+                old_kv = {}
+            preserved = {}
+            cat = self._category_key((sess.get("design_category") or ""))
+            if cat == "coord sets":
+                for key in ("top_type", "bottom_type", "bottom_silhouette"):
+                    if old_kv.get(key):
+                        preserved[key] = old_kv[key]
+            elif cat == "skirt":
+                if old_kv.get("silhouette"):
+                    preserved["silhouette"] = old_kv["silhouette"]
+            init_kv = json.dumps(preserved) if preserved else "{}"
             await self.store.set_fields(
                 wa_id,
                 {
@@ -1440,11 +1447,11 @@ class FlowEngine:
                 ("back_detail", "Back detail"),
             ]
         elif c == "skirt":
-            base += [
-                ("silhouette", "Silhouette"),
-                ("slit", "Slit"),
-                ("hem_shape", "Hem shape"),
-            ]
+            base += [("silhouette", "Silhouette")]
+            # Slit only available for pencil silhouette
+            if mod_kv and mod_kv.get("silhouette") == "pencil":
+                base += [("slit", "Slit")]
+            base += [("hem_shape", "Hem shape")]
         elif c == "pants":
             base += [
                 ("waistband_style", "Waistband style"),
@@ -1489,9 +1496,15 @@ class FlowEngine:
             base += upper_fields_map.get(top_type, [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline")])
 
             # Lower fields — mapped from individual garment types
+            skirt_fields = [("bottom_silhouette", "Bottom silhouette")]
+            # Slit only available for pencil silhouette
+            if mod_kv and mod_kv.get("bottom_silhouette") == "pencil":
+                skirt_fields.append(("bottom_slit", "Bottom slit"))
+            skirt_fields.append(("bottom_hem_shape", "Bottom hem shape"))
+
             lower_fields_map = {
                 "pants":  [("bottom_waistband_style", "Bottom waistband")],
-                "skirt":  [("bottom_silhouette", "Bottom silhouette"), ("bottom_slit", "Bottom slit"), ("bottom_hem_shape", "Bottom hem shape")],
+                "skirt":  skirt_fields,
                 "shorts": [],
             }
             base += lower_fields_map.get(bottom_type, [])
