@@ -1110,6 +1110,7 @@ class FlowEngine:
         if bid == "DESIGN_MODIFY":
             self.logger.log_step(wa_id, "DESIGN_MODIFY")
             # For coord sets, preserve top_type/bottom_type across modify cycles
+            sess = await self.store.get(wa_id) or {}
             init_kv = "{}"
             if self._category_key((sess.get("design_category") or "")) == "coord sets":
                 old_kv_raw = (sess.get("design_mod_kv") or "{}").strip() or "{}"
