@@ -30,6 +30,7 @@ from app.state.flow import (
     STATE_DESIGN_MODIFY_WAIT_PATTERN,
     STATE_UPLOAD_WAIT_IMAGE,
     STATE_UPLOAD_PICK_OPTION,
+    STATE_DESIGN_PICK_OPTION,
     STATE_BUY_SIZE,
     STATE_BUY_LENGTH,
     STATE_BUY_LENGTH_BOTTOM,
@@ -112,9 +113,9 @@ async def receive_webhook(request: Request) -> dict:
                 await flow.handle_start_design_keyword(wa_id)
                 return {"ok": True}
 
-            # Fabric and Print selection are list-only; nudge user to pick from list
-            if state in {STATE_DESIGN_FABRIC, STATE_DESIGN_COLOR, STATE_DESIGN_PRINT_CATEGORY, STATE_DESIGN_PRINT_PICK}:
-                await wa.send_text(wa_id, "Please pick from the list above 🙂")
+            # Fabric, Print, and Design Pick selection are list/button-only; nudge user
+            if state in {STATE_DESIGN_FABRIC, STATE_DESIGN_COLOR, STATE_DESIGN_PRINT_CATEGORY, STATE_DESIGN_PRINT_PICK, STATE_DESIGN_PICK_OPTION}:
+                await wa.send_text(wa_id, "Please pick from the options above 🙂")
                 return {"ok": True}
 
             if state == STATE_DESIGN_COLOR_TEXT:
@@ -226,6 +227,10 @@ async def receive_webhook(request: Request) -> dict:
             # UPLOAD & DESIGN
             if state == STATE_UPLOAD_PICK_OPTION:
                 await flow.handle_upload_pick_option(wa_id, bid)
+                return {"ok": True}
+
+            if state == STATE_DESIGN_PICK_OPTION:
+                await flow.handle_design_pick_option(wa_id, bid)
                 return {"ok": True}
 
             # BUY (design flow)

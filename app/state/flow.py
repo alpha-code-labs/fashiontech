@@ -41,6 +41,7 @@ STATE_DESIGN_MODIFY_WAIT_PATTERN = "DESIGN_MODIFY_WAIT_PATTERN" # user uploads p
 # --- UPLOAD & DESIGN STATES ---
 STATE_UPLOAD_WAIT_IMAGE = "UPLOAD_WAIT_IMAGE"
 STATE_UPLOAD_PICK_OPTION = "UPLOAD_PICK_OPTION"
+STATE_DESIGN_PICK_OPTION = "DESIGN_PICK_OPTION"
 
 # --- SHARED BUY STATES (used by Design "Buy now"; catalog uses this now too) ---
 STATE_BUY_NAME = "BUY_NAME"
@@ -57,7 +58,7 @@ STATE_BUY_COORD_FIT_UPPER = "BUY_COORD_FIT_UPPER"
 STATE_BUY_COORD_FIT_LOWER = "BUY_COORD_FIT_LOWER"
 STATE_BUY_CONFIRM = "BUY_CONFIRM"
 
-MAX_GENERATIONS = 10
+MAX_GENERATIONS = 30
 MAX_MODIFICATIONS = 10
 
 ERROR_MSG_HIGH_VOLUME = (
@@ -234,6 +235,9 @@ class FlowEngine:
 
         elif state == STATE_UPLOAD_PICK_OPTION:
             await self._send_design_post(wa_id)
+
+        elif state == STATE_DESIGN_PICK_OPTION:
+            await self.wa.send_text(wa_id, "Still there? 💖 Please pick one of the options above.")
 
         elif state == STATE_BUY_SIZE:
             await self._send_size_selection(wa_id, intro="Still there? 💖 What's your size?")
@@ -1008,24 +1012,32 @@ class FlowEngine:
         await self.store.touch(wa_id)
 
     async def _generate_design(self, wa_id: str) -> None:
-        # Atomic generation cap: reserve a slot or reject
-        reserved = await self.store.try_reserve_generation(wa_id, MAX_GENERATIONS)
-        if not reserved:
+        # Atomic generation cap: reserve 3 slots (base + 2 variations)
+        slots_reserved = 0
+        for _ in range(3):
+            if await self.store.try_reserve_generation(wa_id, MAX_GENERATIONS):
+                slots_reserved += 1
+            else:
+                break
+        if slots_reserved == 0:
             await self._send_generation_limit_reached(wa_id)
             return
 
         sess = await self.store.get(wa_id) or {}
+        category = sess.get("design_category", "")
+        fabric = sess.get("design_fabric", "")
+        color = sess.get("design_color", "")
+        occasion = sess.get("design_occasion", "")
+
         brief = DesignBrief(
-            occasion=sess.get("design_occasion", ""),
-            budget="",
-            category=sess.get("design_category", ""),
-            fabric=sess.get("design_fabric", ""),
-            color=sess.get("design_color", ""),
-            notes="",
-            size="",
+            occasion=occasion, budget="", category=category,
+            fabric=fabric, color=color, notes="", size="",
         )
 
-        await self.wa.send_text(wa_id, "Okayyy 😍 Designing now… give me a sec ✨")
+        await self.wa.send_text(
+            wa_id,
+            "Okayyy 😍 Designing 3 options for you... ✨\n(This takes a moment)",
+        )
 
         # Load print bytes from library if a print was selected
         print_id = (sess.get("design_print_id") or "").strip()
@@ -1035,34 +1047,97 @@ class FlowEngine:
             if entry:
                 pattern_bytes = self.print_service.get_print_image_bytes(entry)
 
+        # Step 1: Generate base image (Option 1 — user's exact specs)
         try:
-            rel_image_path = await self.gemini.generate_image_only(
+            base_rel_path = await self.gemini.generate_image_only(
                 wa_id=wa_id, brief=brief, pattern_image_bytes=pattern_bytes,
             )
         except Exception as e:
-            print(f"[generate_design] FAILED wa_id={wa_id} error={repr(e)}")
+            print(f"[generate_design] base FAILED wa_id={wa_id} error={repr(e)}")
             await self.wa.send_text(wa_id, ERROR_MSG_HIGH_VOLUME)
             return
 
-        # New design created — reset modification counter
-        await self.store.reset_mod_count(wa_id)
+        # Step 2: Read base image bytes, generate 2 variations in parallel
+        options: list[tuple[int, str]] = [(1, base_rel_path)]
 
-        await self.store.set_fields(
-            wa_id,
-            {
-                "generated_image": rel_image_path,
-                "generated_image_front": rel_image_path,
+        if slots_reserved >= 2:
+            try:
+                base_disk = Path("app" + base_rel_path) if base_rel_path.startswith("/static") else Path(base_rel_path)
+                ref_bytes = base_disk.read_bytes()
+            except Exception as e:
+                print(f"[generate_design] could not read base image: {e}")
+                ref_bytes = None
+
+            if ref_bytes:
+                variations = [
+                    (
+                        f"Color twist: Keep the exact same style, silhouette and structural details "
+                        f"of this {category}, but change the color to something complementary "
+                        f"(NOT {color}). Keep {fabric} fabric."
+                    ),
+                    (
+                        f"Silhouette twist: Keep the same {color} color and {fabric} fabric, "
+                        f"but change the silhouette or a key structural element "
+                        f"(e.g. neckline, sleeve length, hemline, or fit)."
+                    ),
+                ]
+
+                tasks = [
+                    self.gemini.generate_inspired_image(
+                        wa_id=wa_id, brief=brief, ref_bytes=ref_bytes,
+                        variation=var, index=i + 2,
+                    )
+                    for i, var in enumerate(variations[:slots_reserved - 1])
+                ]
+
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                for i, result in enumerate(results):
+                    if isinstance(result, str) and result:
+                        options.append((i + 2, result))
+
+        # Step 3: Send options to user
+        print_ref = f"local:{print_id}" if print_id else ""
+        mod_kv_init = json.dumps({"top_type": "shirt", "bottom_type": "pants"}) if self._category_key(category) == "coord sets" else "{}"
+
+        if len(options) == 1:
+            # Only base succeeded (or only 1 slot reserved) — go straight to DESIGN_POST
+            await self.store.reset_mod_count(wa_id)
+            await self.store.set_fields(wa_id, {
+                "generated_image": base_rel_path,
+                "generated_image_front": base_rel_path,
                 "state": STATE_DESIGN_POST,
-                "design_mod_field": "",
-                "design_mod_print": "",
-                "design_mod_kv": json.dumps({"top_type": "shirt", "bottom_type": "pants"}) if self._category_key(sess.get("design_category", "")) == "coord sets" else "{}",
-                "design_print_ref": f"local:{print_id}" if print_id else "",
-            },
-        )
-        await self.store.touch(wa_id)
-        self.logger.log_step(wa_id, STATE_DESIGN_POST)
+                "design_mod_field": "", "design_mod_print": "",
+                "design_mod_kv": mod_kv_init,
+                "design_print_ref": print_ref,
+            })
+            await self.store.touch(wa_id)
+            self.logger.log_step(wa_id, STATE_DESIGN_POST)
+            await self._send_design_post(wa_id)
+            return
 
-        await self._send_design_post(wa_id)
+        # Multiple options — send images and pick buttons
+        option_fields: dict[str, str] = {}
+        for idx, path in options:
+            option_fields[f"design_option_{idx}"] = path
+        option_fields["design_print_ref_pending"] = print_ref
+        option_fields["design_mod_kv_pending"] = mod_kv_init
+
+        await self.store.set_fields(wa_id, option_fields)
+
+        public_base_url = settings.PUBLIC_BASE_URL.rstrip("/")
+        labels = {1: "Your design", 2: "Color twist", 3: "Style twist"}
+        for idx, path in options:
+            image_url = f"{public_base_url}{path}"
+            await self.wa.send_image(wa_id, image_url=image_url, caption=f"Option {idx} — {labels.get(idx, '')}")
+
+        buttons = [(f"DESIGN_PICK_{idx}", f"Option {idx}") for idx, _ in options]
+
+        await self.store.set_fields(wa_id, {"state": STATE_DESIGN_PICK_OPTION})
+        await self.store.touch(wa_id)
+        self.logger.log_step(wa_id, "DESIGN_3_OPTIONS_SENT")
+
+        await self.wa.send_buttons(wa_id, "Which one do you love? 💖", buttons)
 
     async def _send_design_post(self, wa_id: str) -> None:
         sess = await self.store.get(wa_id) or {}
@@ -1079,7 +1154,7 @@ class FlowEngine:
         # Build counter info line
         designs_used = await self.store.get_gen_count(wa_id)
         mods_used = await self.store.get_mod_count(wa_id)
-        designs_left = MAX_GENERATIONS - designs_used
+        designs_left = max(0, (MAX_GENERATIONS - designs_used) // 3)
         mods_left = MAX_MODIFICATIONS - mods_used
 
         body = f"What do you want to do? ✨\n\n{designs_left} designs remaining · {mods_left} modifications left"
@@ -1093,6 +1168,50 @@ class FlowEngine:
                 ("DESIGN_BUY_NOW", "Buy now"),
             ],
         )
+
+    async def handle_design_pick_option(self, wa_id: str, bid: str) -> None:
+        await self.store.touch(wa_id)
+
+        if not bid or not bid.startswith("DESIGN_PICK_"):
+            await self.send_start_menu(wa_id)
+            return
+
+        pick_num = bid.replace("DESIGN_PICK_", "", 1).strip()
+        sess = await self.store.get(wa_id) or {}
+
+        selected_path = (sess.get(f"design_option_{pick_num}") or "").strip()
+        if not selected_path:
+            await self.wa.send_text(wa_id, "Hmm, that option isn't available. Let's start over!")
+            await self.send_start_menu(wa_id)
+            return
+
+        # Retrieve pending session fields stored during generation
+        print_ref = (sess.get("design_print_ref_pending") or "").strip()
+        mod_kv_init = (sess.get("design_mod_kv_pending") or "{}").strip()
+
+        await self.store.reset_mod_count(wa_id)
+        await self.store.set_fields(
+            wa_id,
+            {
+                "generated_image": selected_path,
+                "generated_image_front": selected_path,
+                "state": STATE_DESIGN_POST,
+                "design_mod_field": "",
+                "design_mod_print": "",
+                "design_mod_kv": mod_kv_init,
+                "design_print_ref": print_ref,
+                # Clean up option fields
+                "design_option_1": "",
+                "design_option_2": "",
+                "design_option_3": "",
+                "design_print_ref_pending": "",
+                "design_mod_kv_pending": "",
+            },
+        )
+        await self.store.touch(wa_id)
+        self.logger.log_step(wa_id, "DESIGN_OPTION_SELECTED")
+
+        await self._send_design_post(wa_id)
 
     async def handle_design_post_button(self, wa_id: str, bid: str) -> None:
         await self.store.touch(wa_id)
