@@ -1193,7 +1193,8 @@ class FlowEngine:
             return
 
         # Retrieve pending session fields stored during generation
-        print_ref = (sess.get("design_print_ref_pending") or "").strip()
+        # Only keep print ref for Option 1 (base) — variations may not have the print
+        print_ref = (sess.get("design_print_ref_pending") or "").strip() if pick_num == "1" else ""
         mod_kv_init = (sess.get("design_mod_kv_pending") or "{}").strip()
 
         await self.store.reset_mod_count(wa_id)
