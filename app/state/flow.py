@@ -1055,7 +1055,7 @@ class FlowEngine:
                 "state": STATE_DESIGN_POST,
                 "design_mod_field": "",
                 "design_mod_print": "",
-                "design_mod_kv": "{}",
+                "design_mod_kv": json.dumps({"top_type": "shirt", "bottom_type": "pants"}) if self._category_key(sess.get("design_category", "")) == "coord sets" else "{}",
                 "design_print_ref": f"local:{print_id}" if print_id else "",
             },
         )
@@ -1109,13 +1109,28 @@ class FlowEngine:
 
         if bid == "DESIGN_MODIFY":
             self.logger.log_step(wa_id, "DESIGN_MODIFY")
+            # For coord sets, preserve top_type/bottom_type across modify cycles
+            init_kv = "{}"
+            if self._category_key((sess.get("design_category") or "")) == "coord sets":
+                old_kv_raw = (sess.get("design_mod_kv") or "{}").strip() or "{}"
+                try:
+                    old_kv = json.loads(old_kv_raw)
+                except Exception:
+                    old_kv = {}
+                preserved = {}
+                if old_kv.get("top_type"):
+                    preserved["top_type"] = old_kv["top_type"]
+                if old_kv.get("bottom_type"):
+                    preserved["bottom_type"] = old_kv["bottom_type"]
+                if preserved:
+                    init_kv = json.dumps(preserved)
             await self.store.set_fields(
                 wa_id,
                 {
                     "state": STATE_DESIGN_MODIFY_MENU,
                     "design_mod_field": "",
                     "design_mod_print": "",
-                    "design_mod_kv": "{}",
+                    "design_mod_kv": init_kv,
                 },
             )
             await self.store.touch(wa_id)
