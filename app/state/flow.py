@@ -1859,14 +1859,29 @@ class FlowEngine:
             if c == "coord sets":
                 if kk.startswith("top_"):
                     piece_field = kk.replace("top_", "")
-                    out[kk] = f"Change the TOP piece's {piece_field} to {vv}. Keep the bottom piece unchanged. Keep everything else identical."
+                    # Special handling for fields that need specific prompts
+                    if piece_field == "back_detail":
+                        out[kk] = f"Add a {vv} detail to the BACK of the TOP piece. Show the garment from the BACK view so the {vv} is clearly visible. Keep the bottom piece unchanged. Keep everything else identical."
+                    elif piece_field == "front_detail":
+                        out[kk] = f"Add a {vv} detail to the FRONT of the TOP piece. Keep the bottom piece unchanged. Keep everything else identical."
+                    else:
+                        out[kk] = f"Change the TOP piece's {piece_field} to {vv}. Keep the bottom piece unchanged. Keep everything else identical."
                 elif kk.startswith("bottom_"):
                     piece_field = kk.replace("bottom_", "")
-                    # Remap bottom_fit for pants/shorts: regular → wide
-                    if kk == "bottom_fit" and vv in ("slim", "regular", "palazzo"):
-                        fit_map = {"slim": "slim", "regular": "wide", "palazzo": "palazzo"}
-                        gemini_val = fit_map.get(vv, vv)
-                        out[kk] = f"Change the BOTTOM piece's fit to {gemini_val}. Keep the top piece unchanged. Keep everything else identical."
+                    # Special handling for slit
+                    if piece_field == "slit":
+                        if vv == "none":
+                            out[kk] = "Remove any slit from the BOTTOM piece; keep hem clean. Keep the top piece unchanged. Keep everything else identical."
+                        elif vv == "back":
+                            out[kk] = "Add a back slit to the BOTTOM piece. Show the garment from the BACK view so the slit is clearly visible. Keep the top piece unchanged. Keep everything else identical."
+                        elif vv == "front_and_back":
+                            out[kk] = "Add slits at both front and back of the BOTTOM piece. Show the garment from the FRONT view. Keep the top piece unchanged. Keep everything else identical."
+                        else:
+                            out[kk] = f"Add a {vv.replace('_', ' ')} slit to the BOTTOM piece. Keep the top piece unchanged. Keep everything else identical."
+                    elif piece_field == "back_detail":
+                        out[kk] = f"Add a {vv} detail to the BACK of the BOTTOM piece. Show the garment from the BACK view so the {vv} is clearly visible. Keep the top piece unchanged. Keep everything else identical."
+                    elif piece_field == "front_detail":
+                        out[kk] = f"Add a {vv} detail to the FRONT of the BOTTOM piece. Keep the top piece unchanged. Keep everything else identical."
                     else:
                         out[kk] = f"Change the BOTTOM piece's {piece_field} to {vv}. Keep the top piece unchanged. Keep everything else identical."
                 elif kk == "color_top":
