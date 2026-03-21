@@ -1361,9 +1361,8 @@ class FlowEngine:
             }
             base += lower_fields_map.get(bottom_type, [])
 
-            # Colors — coord-specific
-            base += [("color_top", "Top color"), ("color_bottom", "Bottom color")]
-            base = [x for x in base if x[0] != "color"]
+            # Color — single option changes both pieces together
+            # (coord sets are always the same color top and bottom)
         elif c == "blouse":
             base += [
                 ("sleeves", "Sleeves"),
@@ -1591,11 +1590,13 @@ class FlowEngine:
         # WhatsApp list row limit is 10 per section.
         # For coord sets, split into Top/Bottom sections to stay within the limit.
         if self._category_key(cat) == "coord sets":
-            top_rows = [r for r in rows if r["id"].startswith("D_CHG_TOP_") or r["id"] == "D_CHG_COLOR_TOP"]
-            bottom_rows = [r for r in rows if r["id"].startswith("D_CHG_BOTTOM_") or r["id"] == "D_CHG_COLOR_BOTTOM"]
+            top_rows = [r for r in rows if r["id"].startswith("D_CHG_TOP_")]
+            bottom_rows = [r for r in rows if r["id"].startswith("D_CHG_BOTTOM_")]
+            color_rows = [r for r in rows if r["id"] == "D_CHG_COLOR"]
             sections = [
                 {"title": "Top piece", "rows": top_rows},
                 {"title": "Bottom piece", "rows": bottom_rows},
+                {"title": "Color", "rows": color_rows},
             ]
         else:
             sections = [{"title": "Modify", "rows": rows}]
