@@ -1071,16 +1071,24 @@ class FlowEngine:
                 ref_bytes = None
 
             if ref_bytes:
+                has_print = bool(pattern_bytes)
+                color_twist_print_note = (
+                    " IMPORTANT: The garment has a print/pattern — you MUST preserve the exact same "
+                    "print/pattern motifs on the new color. Only change the base fabric color."
+                    if has_print else ""
+                )
                 variations = [
                     (
                         f"Color twist: Keep the exact same style, silhouette and structural details "
                         f"of this {category}, but change the color to something complementary "
-                        f"(NOT {color}). Keep {fabric} fabric."
+                        f"(NOT {color}). Keep {fabric} fabric.{color_twist_print_note}",
+                        pattern_bytes,  # pass pattern for color twist
                     ),
                     (
                         f"Silhouette twist: Keep the same {color} color and {fabric} fabric, "
                         f"but change the silhouette or a key structural element "
-                        f"(e.g. neckline, sleeve length, hemline, or fit)."
+                        f"(e.g. neckline, sleeve length, hemline, or fit).",
+                        None,  # no pattern for style twist
                     ),
                 ]
 
@@ -1088,8 +1096,9 @@ class FlowEngine:
                     self.gemini.generate_inspired_image(
                         wa_id=wa_id, brief=brief, ref_bytes=ref_bytes,
                         variation=var, index=i + 2,
+                        pattern_image_bytes=pat,
                     )
-                    for i, var in enumerate(variations[:slots_reserved - 1])
+                    for i, (var, pat) in enumerate(variations[:slots_reserved - 1])
                 ]
 
                 results = await asyncio.gather(*tasks, return_exceptions=True)

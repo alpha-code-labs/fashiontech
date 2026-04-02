@@ -553,13 +553,28 @@ class GeminiClient:
         ref_bytes: bytes,
         variation: str,
         index: int,
+        pattern_image_bytes: Optional[bytes] = None,
     ) -> Optional[str]:
         """
         Generate a NEW design INSPIRED by the reference image.
+        If pattern_image_bytes is provided, include the pattern as a reference
+        and add print preservation instructions to the prompt.
         Returns relative image path on success, None on failure.
         """
         try:
             ref_mime = self._guess_mime(ref_bytes)
+
+            pattern_instruction = ""
+            if pattern_image_bytes:
+                pattern_instruction = (
+                    "\nPRINT/PATTERN RULE (MUST FOLLOW):\n"
+                    "- A print/pattern reference image is also provided.\n"
+                    "- The reference design has this print/pattern applied to the garment.\n"
+                    "- You MUST preserve this exact print/pattern on the new design.\n"
+                    "- Same motifs, same density, same placement.\n"
+                    "- Only change what the VARIATION INSTRUCTION asks for.\n"
+                    "\n"
+                )
 
             prompt = (
                 "Create a high-quality fashion product-style image.\n"
@@ -573,6 +588,7 @@ class GeminiClient:
                 f"Fabric: {brief.fabric}\n"
                 f"Color: {brief.color}\n"
                 f"Style notes: {brief.notes}\n"
+                f"{pattern_instruction}"
                 "\n"
                 f"VARIATION INSTRUCTION: {variation}\n"
                 "\n"
@@ -581,8 +597,11 @@ class GeminiClient:
 
             parts = [
                 types.Part.from_bytes(data=ref_bytes, mime_type=ref_mime),
-                types.Part.from_text(text=prompt),
             ]
+            if pattern_image_bytes:
+                pattern_mime = self._guess_mime(pattern_image_bytes)
+                parts.append(types.Part.from_bytes(data=pattern_image_bytes, mime_type=pattern_mime))
+            parts.append(types.Part.from_text(text=prompt))
 
             resp = await self._generate_via_pool(
                 model=self.model,
@@ -592,6 +611,9 @@ class GeminiClient:
 
             image_bytes = None
             for cand in (resp.candidates or []):
+                if not cand.content or not cand.content.parts:
+                    print(f"[GeminiClient] generate_inspired_image candidate has no content/parts, finish_reason={getattr(cand, 'finish_reason', 'unknown')}")
+                    continue
                 for part in (cand.content.parts or []):
                     if part.inline_data and part.inline_data.data:
                         image_bytes = part.inline_data.data
