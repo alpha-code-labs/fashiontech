@@ -1250,21 +1250,21 @@ class FlowEngine:
             if cat == "coord sets":
                 persist_keys = {
                     "top_type", "bottom_type", "bottom_silhouette",
-                    "top_length", "top_fit", "top_cuffs",
-                    "bottom_length", "bottom_fit", "bottom_waist_rise",
+                    "top_length", "top_cuffs",
+                    "bottom_length", "bottom_waist_rise",
                 }
             elif cat == "skirt":
                 persist_keys = {"silhouette", "length", "waist_rise"}
             elif cat == "dress":
                 persist_keys = {"length", "waist_fit"}
             elif cat == "top":
-                persist_keys = {"length", "fit"}
+                persist_keys = {"length"}
             elif cat == "pants":
-                persist_keys = {"length", "fit", "waist_rise"}
+                persist_keys = {"length", "waist_rise"}
             elif cat == "jumpsuit":
                 persist_keys = {"length", "waist_definition"}
             elif cat == "shirts":
-                persist_keys = {"length", "fit", "cuffs"}
+                persist_keys = {"length", "cuffs"}
             for key in persist_keys:
                 if old_kv.get(key):
                     preserved[key] = old_kv[key]
@@ -1466,7 +1466,6 @@ class FlowEngine:
                 ("hem", "Hem"),
                 ("back_detail", "Back detail"),
                 ("length", "Length"),
-                ("fit", "Fit"),
             ]
         elif c == "skirt":
             base += [("silhouette", "Silhouette")]
@@ -1482,7 +1481,6 @@ class FlowEngine:
             base += [
                 ("waistband_style", "Waistband style"),
                 ("length", "Length"),
-                ("fit", "Fit"),
                 ("waist_rise", "Waist rise"),
             ]
         elif c == "jumpsuit":
@@ -1508,7 +1506,6 @@ class FlowEngine:
                 ("collar_type", "Collar type"),
                 ("hem", "Hem"),
                 ("length", "Length"),
-                ("fit", "Fit"),
                 ("cuffs", "Cuffs"),
             ]
         elif c == "coord sets":
@@ -1522,10 +1519,10 @@ class FlowEngine:
 
             # Upper fields — mapped from individual garment types
             upper_fields_map = {
-                "shirt":  [("top_sleeves", "Top sleeves"), ("top_collar_type", "Top collar"), ("top_hem", "Top hem"), ("top_length", "Top length"), ("top_fit", "Top fit"), ("top_cuffs", "Top cuffs")],
+                "shirt":  [("top_sleeves", "Top sleeves"), ("top_collar_type", "Top collar"), ("top_hem", "Top hem"), ("top_length", "Top length"), ("top_cuffs", "Top cuffs")],
                 "crop":   [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_back_detail", "Top back detail"), ("top_length", "Top length")],
-                "tee":    [("top_sleeve_length", "Top sleeve length"), ("top_neckline", "Top neckline"), ("top_fit", "Top fit"), ("top_hem", "Top hem"), ("top_length", "Top length")],
-                "blouse": [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_fit", "Top fit"), ("top_front_detail", "Top front detail"), ("top_back_detail", "Top back detail"), ("top_length", "Top length")],
+                "tee":    [("top_sleeve_length", "Top sleeve length"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_length", "Top length")],
+                "blouse": [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_front_detail", "Top front detail"), ("top_back_detail", "Top back detail"), ("top_length", "Top length")],
             }
             base += upper_fields_map.get(top_type, [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline")])
 
@@ -1537,7 +1534,7 @@ class FlowEngine:
             skirt_fields.append(("bottom_hem_shape", "Bottom hem shape"))
 
             lower_fields_map = {
-                "pants":  [("bottom_waistband_style", "Bottom waistband"), ("bottom_length", "Bottom length"), ("bottom_fit", "Bottom fit"), ("bottom_waist_rise", "Bottom waist rise")],
+                "pants":  [("bottom_waistband_style", "Bottom waistband"), ("bottom_length", "Bottom length"), ("bottom_waist_rise", "Bottom waist rise")],
                 "skirt":  skirt_fields + [("bottom_length", "Bottom length"), ("bottom_waist_rise", "Bottom waist rise")],
                 "shorts": [],
             }
