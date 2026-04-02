@@ -366,6 +366,9 @@ class GeminiClient:
 
         image_bytes = None
         for cand in (resp.candidates or []):
+            if not cand.content or not cand.content.parts:
+                print(f"[GeminiClient] candidate has no content/parts, finish_reason={getattr(cand, 'finish_reason', 'unknown')}")
+                continue
             for part in (cand.content.parts or []):
                 if part.inline_data and part.inline_data.data:
                     image_bytes = part.inline_data.data
@@ -431,6 +434,9 @@ class GeminiClient:
 
         image_bytes = None
         for cand in (resp.candidates or []):
+            if not cand.content or not cand.content.parts:
+                print(f"[GeminiClient] candidate has no content/parts, finish_reason={getattr(cand, 'finish_reason', 'unknown')}")
+                continue
             for part in (cand.content.parts or []):
                 if part.inline_data and part.inline_data.data:
                     image_bytes = part.inline_data.data
