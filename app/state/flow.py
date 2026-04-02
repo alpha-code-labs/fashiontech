@@ -1245,13 +1245,29 @@ class FlowEngine:
                 old_kv = {}
             preserved = {}
             cat = self._category_key((sess.get("design_category") or ""))
+            # Build set of keys that should persist across modify cycles
+            persist_keys: set = set()
             if cat == "coord sets":
-                for key in ("top_type", "bottom_type", "bottom_silhouette"):
-                    if old_kv.get(key):
-                        preserved[key] = old_kv[key]
+                persist_keys = {
+                    "top_type", "bottom_type", "bottom_silhouette",
+                    "top_length", "top_fit", "top_cuffs",
+                    "bottom_length", "bottom_fit", "bottom_waist_rise",
+                }
             elif cat == "skirt":
-                if old_kv.get("silhouette"):
-                    preserved["silhouette"] = old_kv["silhouette"]
+                persist_keys = {"silhouette", "length", "waist_rise"}
+            elif cat == "dress":
+                persist_keys = {"length", "waist_fit"}
+            elif cat == "top":
+                persist_keys = {"length", "fit"}
+            elif cat == "pants":
+                persist_keys = {"length", "fit", "waist_rise"}
+            elif cat == "jumpsuit":
+                persist_keys = {"length", "waist_definition"}
+            elif cat == "shirts":
+                persist_keys = {"length", "fit", "cuffs"}
+            for key in persist_keys:
+                if old_kv.get(key):
+                    preserved[key] = old_kv[key]
             init_kv = json.dumps(preserved) if preserved else "{}"
             await self.store.set_fields(
                 wa_id,
@@ -1440,6 +1456,8 @@ class FlowEngine:
                 ("silhouette", "Silhouette"),
                 ("hem_shape", "Hem shape"),
                 ("back_detail", "Back detail"),
+                ("length", "Length"),
+                ("waist_fit", "Waist fit"),
             ]
         elif c == "top":
             base += [
@@ -1447,16 +1465,25 @@ class FlowEngine:
                 ("neckline", "Neckline"),
                 ("hem", "Hem"),
                 ("back_detail", "Back detail"),
+                ("length", "Length"),
+                ("fit", "Fit"),
             ]
         elif c == "skirt":
             base += [("silhouette", "Silhouette")]
             # Slit only available for pencil silhouette
             if mod_kv and mod_kv.get("silhouette") == "pencil":
                 base += [("slit", "Slit")]
-            base += [("hem_shape", "Hem shape")]
+            base += [
+                ("hem_shape", "Hem shape"),
+                ("length", "Length"),
+                ("waist_rise", "Waist rise"),
+            ]
         elif c == "pants":
             base += [
                 ("waistband_style", "Waistband style"),
+                ("length", "Length"),
+                ("fit", "Fit"),
+                ("waist_rise", "Waist rise"),
             ]
         elif c == "jumpsuit":
             base += [
@@ -1464,6 +1491,8 @@ class FlowEngine:
                 ("neckline", "Neckline"),
                 ("leg_fit", "Leg fit"),
                 ("back_detail", "Back detail"),
+                ("length", "Length"),
+                ("waist_definition", "Waist definition"),
             ]
         elif c == "jacket":
             base += [
@@ -1478,6 +1507,9 @@ class FlowEngine:
                 ("sleeves", "Sleeves"),
                 ("collar_type", "Collar type"),
                 ("hem", "Hem"),
+                ("length", "Length"),
+                ("fit", "Fit"),
+                ("cuffs", "Cuffs"),
             ]
         elif c == "coord sets":
             # Dynamic fields based on selected top_type and bottom_type
@@ -1490,10 +1522,10 @@ class FlowEngine:
 
             # Upper fields — mapped from individual garment types
             upper_fields_map = {
-                "shirt":  [("top_sleeves", "Top sleeves"), ("top_collar_type", "Top collar"), ("top_hem", "Top hem")],
-                "crop":   [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_back_detail", "Top back detail")],
-                "tee":    [("top_sleeve_length", "Top sleeve length"), ("top_neckline", "Top neckline"), ("top_fit", "Top fit"), ("top_hem", "Top hem")],
-                "blouse": [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_fit", "Top fit"), ("top_front_detail", "Top front detail"), ("top_back_detail", "Top back detail")],
+                "shirt":  [("top_sleeves", "Top sleeves"), ("top_collar_type", "Top collar"), ("top_hem", "Top hem"), ("top_length", "Top length"), ("top_fit", "Top fit"), ("top_cuffs", "Top cuffs")],
+                "crop":   [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_back_detail", "Top back detail"), ("top_length", "Top length")],
+                "tee":    [("top_sleeve_length", "Top sleeve length"), ("top_neckline", "Top neckline"), ("top_fit", "Top fit"), ("top_hem", "Top hem"), ("top_length", "Top length")],
+                "blouse": [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_fit", "Top fit"), ("top_front_detail", "Top front detail"), ("top_back_detail", "Top back detail"), ("top_length", "Top length")],
             }
             base += upper_fields_map.get(top_type, [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline")])
 
@@ -1505,8 +1537,8 @@ class FlowEngine:
             skirt_fields.append(("bottom_hem_shape", "Bottom hem shape"))
 
             lower_fields_map = {
-                "pants":  [("bottom_waistband_style", "Bottom waistband")],
-                "skirt":  skirt_fields,
+                "pants":  [("bottom_waistband_style", "Bottom waistband"), ("bottom_length", "Bottom length"), ("bottom_fit", "Bottom fit"), ("bottom_waist_rise", "Bottom waist rise")],
+                "skirt":  skirt_fields + [("bottom_length", "Bottom length"), ("bottom_waist_rise", "Bottom waist rise")],
                 "shorts": [],
             }
             base += lower_fields_map.get(bottom_type, [])
@@ -1575,10 +1607,30 @@ class FlowEngine:
                 return [("slim", "Slim"), ("regular", "Regular"), ("palazzo", "Palazzo")]
             return [("regular", "Regular"), ("tailored", "Tailored"), ("relaxed", "Relaxed")]
 
+        # Length options per category
+        if f == "length":
+            if c == "dress":
+                return [("mini", "Mini"), ("midi", "Midi"), ("maxi", "Maxi")]
+            if c == "top":
+                return [("crop", "Crop"), ("regular", "Regular"), ("shirt", "Longline")]
+            if c == "skirt":
+                return [("mini", "Mini"), ("midi", "Midi"), ("maxi", "Maxi")]
+            if c == "pants":
+                return [("full", "Full length"), ("ankle", "Ankle"), ("cropped", "Cropped")]
+            if c == "jumpsuit":
+                return [("full", "Full length"), ("cropped", "Cropped")]
+            if c == "shirts":
+                return [("tucked", "Tucked"), ("untucked", "Untucked"), ("longline", "Longline")]
+            return []
+
+        # Waist rise options
+        if f == "waist_rise":
+            return [("high", "High"), ("mid", "Mid"), ("low", "Low")]
+
         # Per-category fields
         if c == "dress":
             if f == "waist_fit":
-                return [("cinched", "Cinched"), ("straight", "Straight"), ("empire", "Empire")]
+                return [("cinched", "Cinched"), ("empire", "Empire"), ("dropped", "Dropped"), ("relaxed", "Relaxed")]
             if f == "silhouette":
                 return [("a_line", "A-line"), ("bodycon", "Bodycon"), ("wrap", "Wrap"), ("shift", "Shift")]
             if f == "hem_shape":
@@ -1706,11 +1758,18 @@ class FlowEngine:
             "top_sleeve_length": "top sleeve length",
             "top_fit": "top fit",
             "top_front_detail": "top front detail",
+            "top_length": "top length",
+            "top_cuffs": "top cuffs",
             "bottom_type": "bottom type",
             "bottom_waistband_style": "bottom waistband",
             "bottom_silhouette": "bottom silhouette",
             "bottom_slit": "bottom slit",
             "bottom_hem_shape": "bottom hem shape",
+            "bottom_length": "bottom length",
+            "bottom_fit": "bottom fit",
+            "bottom_waist_rise": "bottom waist rise",
+            "length": "length",
+            "fit": "fit",
             "sleeve_length": "sleeve length",
             "color": "color",
             "color_top": "top color",
@@ -1983,8 +2042,44 @@ class FlowEngine:
                     leg_map = {"slim": "slim", "regular": "wide", "palazzo": "palazzo"}
                     gemini_val = leg_map.get(vv, vv)
                     out[kk] = f"Change the leg fit of the jumpsuit to {gemini_val} legs. Keep the top half and everything else identical."
+                elif kk == "length":
+                    jumpsuit_length_prompts = {
+                        "full": (
+                            "Change the jumpsuit leg length to FULL LENGTH. "
+                            "The hem of both legs MUST reach the top of the shoes/ankles. "
+                            "Full leg coverage from hip to ankle. Keep the top half and everything else identical."
+                        ),
+                        "cropped": (
+                            "Change the jumpsuit leg length to CROPPED. "
+                            "The hem of both legs MUST end at MID-CALF, well above the ankle. "
+                            "Several inches of lower leg should be visible below the hem. "
+                            "Keep the top half and everything else identical."
+                        ),
+                    }
+                    out[kk] = jumpsuit_length_prompts.get(vv, f"Set jumpsuit length to {vv}. Keep everything else identical.")
                 elif kk == "waist_definition":
-                    out[kk] = f"Change the waist definition of the jumpsuit to {vv}. Keep everything else identical."
+                    waist_def_prompts = {
+                        "belted": (
+                            "MODIFICATION — WAIST: BELTED (MUST BE VISUALLY OBVIOUS):\n"
+                            "Add a clearly visible BELT at the natural waist of the jumpsuit. "
+                            "The belt should create a defined break between the top and bottom halves. "
+                            "Visible belt material, buckle or tie closure. Fabric gathers where the belt cinches. "
+                            "Keep everything else identical."
+                        ),
+                        "cinched": (
+                            "MODIFICATION — WAIST: CINCHED (MUST BE VISUALLY OBVIOUS):\n"
+                            "The jumpsuit waist MUST pull in tightly at the natural waist, creating an hourglass shape. "
+                            "No belt — the cinching is built into the garment (elastic, seaming, or darting). "
+                            "Clear contrast between the fitted waist and the looser top/bottom. "
+                            "Keep everything else identical."
+                        ),
+                        "straight": (
+                            "Set jumpsuit waist to STRAIGHT — no waist definition. The jumpsuit flows straight "
+                            "from shoulders to legs without any cinching, belting, or shaping at the waist. "
+                            "Column silhouette, uniform width throughout. Keep everything else identical."
+                        ),
+                    }
+                    out[kk] = waist_def_prompts.get(vv, f"Set waist definition to {vv} on the jumpsuit. Keep everything else identical.")
                 else:
                     out[kk] = f"Set {label} to {vv} on the jumpsuit. Keep everything else identical."
                 continue
@@ -1998,6 +2093,71 @@ class FlowEngine:
                         out[kk] = f"Add a {vv} detail to the BACK of the TOP piece. Show the garment from the BACK view so the {vv} is clearly visible. Keep the bottom piece unchanged. Keep everything else identical."
                     elif piece_field == "front_detail":
                         out[kk] = f"Add a {vv} detail to the FRONT of the TOP piece. Keep the bottom piece unchanged. Keep everything else identical."
+                    elif piece_field == "length":
+                        # Use the same anatomical prompts as standalone top/shirt
+                        sess_kv = kv or {}
+                        tt = (sess_kv.get("top_type") or "").strip().lower()
+                        if tt == "shirt":
+                            coord_top_length_prompts = {
+                                "tucked": "Change the TOP piece (shirt) length to TUCKED — short enough to tuck into the bottom. Hem ends at the waist. Keep the bottom piece unchanged. Keep everything else identical.",
+                                "untucked": "Change the TOP piece (shirt) length to UNTUCKED — hem ends at hip level, covering the waistband of the bottom piece. Keep the bottom piece unchanged. Keep everything else identical.",
+                                "longline": "Change the TOP piece (shirt) length to LONGLINE — hem extends to MID-THIGH, like a tunic. Keep the bottom piece unchanged. Keep everything else identical.",
+                            }
+                        else:
+                            coord_top_length_prompts = {
+                                "crop": (
+                                    "PRIORITY: Apply this modification fully and visibly.\n"
+                                    "Change the TOP piece into a crop top. The hem MUST end at mid-ribcage level. "
+                                    "Expose bare midriff and navel between the top hem and the bottom piece waistband. "
+                                    "Keep the bottom piece unchanged. Keep everything else identical."
+                                ),
+                                "regular": (
+                                    "Change the TOP piece length to REGULAR — hem ends at the hip bone, "
+                                    "covering the waistband of the bottom piece. No bare midriff visible. "
+                                    "Keep the bottom piece unchanged. Keep everything else identical."
+                                ),
+                                "shirt": (
+                                    "Change the TOP piece length to LONGLINE — hem extends to MID-THIGH. "
+                                    "Keep the bottom piece unchanged. Keep everything else identical."
+                                ),
+                            }
+                        out[kk] = coord_top_length_prompts.get(vv, f"Set TOP piece length to {vv}. Keep the bottom piece unchanged. Keep everything else identical.")
+                    elif piece_field == "fit":
+                        coord_top_fit_prompts = {
+                            "slim": (
+                                "MODIFICATION — TOP PIECE FIT: SLIM/FITTED (MUST BE VISUALLY OBVIOUS):\n"
+                                "The TOP piece fabric MUST follow the contours of the body closely — like a second skin. "
+                                "Visible body shape: waist and torso MUST be clearly defined through the fabric. "
+                                "NO excess fabric, NO draping, NO billowing. Zero gap between fabric and skin. "
+                                "Keep the bottom piece unchanged. Keep everything else identical."
+                            ),
+                            "regular": "Set TOP piece fit to REGULAR — standard relaxed fit. Fabric follows body shape loosely with some ease. Keep the bottom piece unchanged. Keep everything else identical.",
+                            "oversized": (
+                                "MODIFICATION — TOP PIECE FIT: OVERSIZED (MUST BE VISUALLY OBVIOUS):\n"
+                                "The TOP piece MUST be noticeably larger than the body — loose, baggy, and voluminous. "
+                                "Fabric hangs away from the body with visible excess material. Shoulder seams drop below natural shoulders. "
+                                "Keep the bottom piece unchanged. Keep everything else identical."
+                            ),
+                        }
+                        out[kk] = coord_top_fit_prompts.get(vv, f"Set TOP piece fit to {vv}. Keep the bottom piece unchanged. Keep everything else identical.")
+                    elif piece_field == "cuffs":
+                        coord_top_cuffs_prompts = {
+                            "buttoned": (
+                                "MODIFICATION — TOP PIECE CUFFS: BUTTONED (MUST BE VISIBLE):\n"
+                                "The TOP piece sleeves MUST end with structured BUTTONED CUFFS at the wrists. "
+                                "Each cuff shows 1-2 visible buttons on a neat, crisp fabric band wrapping the wrist. "
+                                "Sleeves MUST be full-length reaching the wrists. NO elastic gathering. "
+                                "Keep the bottom piece unchanged. Keep everything else identical."
+                            ),
+                            "elastic": (
+                                "MODIFICATION — TOP PIECE CUFFS: ELASTIC (MUST BE VISIBLE):\n"
+                                "The TOP piece sleeves MUST end with GATHERED/ELASTIC CUFFS at the wrists. "
+                                "Fabric is visibly gathered and bunched where elastic pulls it in at the wrist. "
+                                "Creates a soft, bloused/puff effect above the gathered wrist. NO buttons on cuffs. "
+                                "Keep the bottom piece unchanged. Keep everything else identical."
+                            ),
+                        }
+                        out[kk] = coord_top_cuffs_prompts.get(vv, f"Set TOP piece cuffs to {vv}. Keep the bottom piece unchanged. Keep everything else identical.")
                     else:
                         out[kk] = f"Change the TOP piece's {piece_field} to {vv}. Keep the bottom piece unchanged. Keep everything else identical."
                 elif kk.startswith("bottom_"):
@@ -2016,6 +2176,56 @@ class FlowEngine:
                         out[kk] = f"Add a {vv} detail to the BACK of the BOTTOM piece. Show the garment from the BACK view so the {vv} is clearly visible. Keep the top piece unchanged. Keep everything else identical."
                     elif piece_field == "front_detail":
                         out[kk] = f"Add a {vv} detail to the FRONT of the BOTTOM piece. Keep the top piece unchanged. Keep everything else identical."
+                    elif piece_field == "length":
+                        sess_kv = kv or {}
+                        bt = (sess_kv.get("bottom_type") or "").strip().lower()
+                        if bt == "pants":
+                            coord_bottom_length_prompts = {
+                                "full": "Change the BOTTOM piece (pants) length to FULL LENGTH. Hem MUST reach the ankles. Keep the top piece unchanged. Keep everything else identical.",
+                                "ankle": "Change the BOTTOM piece (pants) length to ANKLE LENGTH. Hem ends at the ankle bone, slightly above the shoe. Keep the top piece unchanged. Keep everything else identical.",
+                                "cropped": "Change the BOTTOM piece (pants) length to CROPPED. Hem ends at MID-CALF, well above the ankle. Keep the top piece unchanged. Keep everything else identical.",
+                            }
+                        else:
+                            coord_bottom_length_prompts = {
+                                "mini": "Change the BOTTOM piece (skirt) length to MINI. Hemline MUST end at mid-thigh, well above the knee. Keep the top piece unchanged. Keep everything else identical.",
+                                "midi": "Change the BOTTOM piece (skirt) length to MIDI. Hemline MUST end between the knee and mid-calf. Keep the top piece unchanged. Keep everything else identical.",
+                                "maxi": "Change the BOTTOM piece (skirt) length to MAXI. Hemline MUST reach the ankles or floor. Keep the top piece unchanged. Keep everything else identical.",
+                            }
+                        out[kk] = coord_bottom_length_prompts.get(vv, f"Set BOTTOM piece length to {vv}. Keep the top piece unchanged. Keep everything else identical.")
+                    elif piece_field == "fit":
+                        coord_bottom_fit_prompts = {
+                            "slim": (
+                                "MODIFICATION — BOTTOM PIECE FIT: SLIM (MUST BE VISUALLY OBVIOUS):\n"
+                                "The BOTTOM piece fabric MUST follow the contours of the legs closely. "
+                                "Visible leg shape through the fabric. NO excess fabric. "
+                                "Keep the top piece unchanged. Keep everything else identical."
+                            ),
+                            "regular": "Set BOTTOM piece fit to REGULAR — standard relaxed fit with some ease. Keep the top piece unchanged. Keep everything else identical.",
+                            "palazzo": (
+                                "MODIFICATION — BOTTOM PIECE FIT: PALAZZO (MUST BE VISUALLY OBVIOUS):\n"
+                                "The BOTTOM piece MUST be extremely wide-legged from hip to ankle. "
+                                "Each leg should be as wide as a skirt. Dramatic flowing fabric. Maximum volume. "
+                                "Keep the top piece unchanged. Keep everything else identical."
+                            ),
+                        }
+                        out[kk] = coord_bottom_fit_prompts.get(vv, f"Set BOTTOM piece fit to {vv}. Keep the top piece unchanged. Keep everything else identical.")
+                    elif piece_field == "waist_rise":
+                        coord_bottom_rise_prompts = {
+                            "high": (
+                                "MODIFICATION — BOTTOM PIECE WAIST RISE: HIGH (MUST BE VISUALLY OBVIOUS):\n"
+                                "Move the BOTTOM piece waistband to sit at or ABOVE the navel/belly button level. "
+                                "The waistband MUST be clearly visible 2-3 inches ABOVE the hip bones. "
+                                "Keep the top piece unchanged. Keep everything else identical."
+                            ),
+                            "mid": "Set BOTTOM piece waist rise to MID-RISE. Waistband sits at the hip bone level. Standard position. Keep the top piece unchanged. Keep everything else identical.",
+                            "low": (
+                                "MODIFICATION — BOTTOM PIECE WAIST RISE: LOW (MUST BE VISUALLY OBVIOUS):\n"
+                                "Move the BOTTOM piece waistband to sit well BELOW the navel, at hip bone level or lower. "
+                                "The waistband sits at least 3 inches below the natural waist. "
+                                "Keep the top piece unchanged. Keep everything else identical."
+                            ),
+                        }
+                        out[kk] = coord_bottom_rise_prompts.get(vv, f"Set BOTTOM piece waist rise to {vv}. Keep the top piece unchanged. Keep everything else identical.")
                     else:
                         out[kk] = f"Change the BOTTOM piece's {piece_field} to {vv}. Keep the top piece unchanged. Keep everything else identical."
                 elif kk == "color_top":
@@ -2075,11 +2285,218 @@ class FlowEngine:
                 out[kk] = length_prompts.get(vv, f"Set length to {vv}. Keep everything else identical.")
                 continue
 
-            # Pants fit remapping: "regular" label actually means wide-leg for Gemini
-            if c == "pants" and kk == "fit":
-                fit_map = {"slim": "slim", "regular": "wide", "palazzo": "palazzo"}
-                gemini_val = fit_map.get(vv, vv)
-                out[kk] = f"Set fit to {gemini_val}. Keep everything else identical."
+            # Dress length prompts
+            if c == "dress" and kk == "length":
+                dress_length_prompts = {
+                    "mini": (
+                        "Change dress length to MINI. Hemline MUST end at mid-thigh, well above the knee. "
+                        "Legs visible from mid-thigh down. Keep everything else identical."
+                    ),
+                    "midi": (
+                        "Change dress length to MIDI. Hemline MUST end between the knee and mid-calf. "
+                        "NOT above the knee, NOT at the ankle. Keep everything else identical."
+                    ),
+                    "maxi": (
+                        "Change dress length to MAXI. Hemline MUST reach the ankles or floor. "
+                        "The entire leg is covered by fabric. Keep everything else identical."
+                    ),
+                }
+                out[kk] = dress_length_prompts.get(vv, f"Set dress length to {vv}. Keep everything else identical.")
+                continue
+
+            # Skirt length prompts
+            if c == "skirt" and kk == "length":
+                skirt_length_prompts = {
+                    "mini": (
+                        "Change skirt length to MINI. Hemline MUST end at mid-thigh, well above the knee. "
+                        "Keep everything else identical."
+                    ),
+                    "midi": (
+                        "Change skirt length to MIDI. Hemline MUST end between the knee and mid-calf. "
+                        "Keep everything else identical."
+                    ),
+                    "maxi": (
+                        "Change skirt length to MAXI. Hemline MUST reach the ankles or floor. "
+                        "Keep everything else identical."
+                    ),
+                }
+                out[kk] = skirt_length_prompts.get(vv, f"Set skirt length to {vv}. Keep everything else identical.")
+                continue
+
+            # Pants length prompts
+            if c == "pants" and kk == "length":
+                pants_length_prompts = {
+                    "full": (
+                        "Change pants length to FULL LENGTH. Hem MUST reach the top of the shoes/ankles. "
+                        "Full leg coverage. Keep everything else identical."
+                    ),
+                    "ankle": (
+                        "Change pants length to ANKLE LENGTH. Hem MUST end at the ankle bone, slightly above the shoe. "
+                        "A strip of ankle is visible. Keep everything else identical."
+                    ),
+                    "cropped": (
+                        "Change pants length to CROPPED. Hem MUST end at MID-CALF, well above the ankle. "
+                        "Several inches of lower leg visible. Keep everything else identical."
+                    ),
+                }
+                out[kk] = pants_length_prompts.get(vv, f"Set pants length to {vv}. Keep everything else identical.")
+                continue
+
+            # Shirts length prompts
+            if c == "shirts" and kk == "length":
+                shirts_length_prompts = {
+                    "tucked": (
+                        "Change shirt length to TUCKED length — short enough to tuck into bottoms. "
+                        "Hem ends at the waist. Keep everything else identical."
+                    ),
+                    "untucked": (
+                        "Change shirt length to UNTUCKED — hem ends at hip level, covering the waistband of bottoms. "
+                        "Keep everything else identical."
+                    ),
+                    "longline": (
+                        "Change shirt length to LONGLINE — hem extends to MID-THIGH, like a tunic. "
+                        "Keep everything else identical."
+                    ),
+                }
+                out[kk] = shirts_length_prompts.get(vv, f"Set shirt length to {vv}. Keep everything else identical.")
+                continue
+
+            # Fit prompts (top, shirts, pants)
+            if kk == "fit":
+                if c in {"top", "shirts", "t-shirts"}:
+                    fit_prompts = {
+                        "slim": (
+                            "MODIFICATION — FIT: SLIM/FITTED (MUST BE VISUALLY OBVIOUS):\n"
+                            "The fabric MUST follow the contours of the body closely — like a second skin. "
+                            "Visible body shape: the outline of the waist, hips, and torso MUST be clearly defined through the fabric. "
+                            "NO excess fabric, NO draping, NO billowing. Zero gap between fabric and skin. "
+                            "Think: bodycon, compression fit. Fabric should show subtle tension lines indicating tightness. "
+                            "The garment width from the front should be NARROWER than a standard fit. "
+                            "Keep the exact same color, fabric type, length, and design details."
+                        ),
+                        "regular": (
+                            "Set fit to REGULAR — standard relaxed fit. Fabric follows body shape loosely with some ease. "
+                            "Not tight, not baggy. Natural drape with slight room. Think: classic comfortable fit. "
+                            "Keep everything else identical."
+                        ),
+                        "oversized": (
+                            "MODIFICATION — FIT: OVERSIZED (MUST BE VISUALLY OBVIOUS):\n"
+                            "The garment MUST be noticeably larger than the body — loose, baggy, and voluminous. "
+                            "Fabric hangs away from the body with visible excess material. Shoulder seams drop below natural shoulders. "
+                            "Think: borrowed-from-someone-bigger, streetwear oversized. "
+                            "Keep the exact same color, fabric type, length, and design details."
+                        ),
+                    }
+                    out[kk] = fit_prompts.get(vv, f"Set fit to {vv}. Keep everything else identical.")
+                    continue
+                if c == "pants":
+                    pants_fit_prompts = {
+                        "slim": (
+                            "MODIFICATION — FIT: SLIM (MUST BE VISUALLY OBVIOUS):\n"
+                            "The pants fabric MUST follow the contours of the legs closely. "
+                            "Visible leg shape through the fabric. NO excess fabric. Think: skinny jeans, cigarette pants. "
+                            "Keep the exact same color, fabric type, length, and design details."
+                        ),
+                        "regular": (
+                            "Set pants fit to REGULAR — standard straight-leg fit with moderate room. "
+                            "Not tight, not wide. Keep everything else identical."
+                        ),
+                        "palazzo": (
+                            "MODIFICATION — FIT: PALAZZO (MUST BE VISUALLY OBVIOUS):\n"
+                            "Change pants fit to PALAZZO — extremely wide-legged from hip to ankle. "
+                            "Each leg should be as wide as a skirt. Dramatic flowing fabric. Maximum volume. "
+                            "Keep the exact same color, fabric type, length, and design details."
+                        ),
+                    }
+                    out[kk] = pants_fit_prompts.get(vv, f"Set pants fit to {vv}. Keep everything else identical.")
+                    continue
+
+            # Waist rise prompts (skirt, pants)
+            if kk == "waist_rise" and c in {"skirt", "pants"}:
+                waist_rise_prompts = {
+                    "high": (
+                        "MODIFICATION — WAIST RISE: HIGH (MUST BE VISUALLY OBVIOUS):\n"
+                        "Move the waistband to sit at or ABOVE the model's navel/belly button level. "
+                        "The waistband MUST be clearly visible 2-3 inches ABOVE the hip bones. "
+                        "The fabric between crotch and waistband should be noticeably LONGER than standard. "
+                        "It must NOT be mid-rise (at hip bones) or low-rise (below hip bones). "
+                        "Keep everything else identical."
+                    ),
+                    "mid": (
+                        "Set waist rise to MID-RISE. Waistband sits at the hip bone level, at the natural waist. "
+                        "Standard position — not high (above navel) and not low (below hips). "
+                        "Keep everything else identical."
+                    ),
+                    "low": (
+                        "MODIFICATION — WAIST RISE: LOW (MUST BE VISUALLY OBVIOUS):\n"
+                        "Move the waistband to sit well BELOW the model's navel, at hip bone level or lower. "
+                        "The waistband sits at least 3 inches below the natural waist. "
+                        "It must NOT be mid-rise or high-rise. "
+                        "Keep everything else identical."
+                    ),
+                }
+                out[kk] = waist_rise_prompts.get(vv, f"Set waist rise to {vv}. Keep everything else identical.")
+                continue
+
+            # Waist fit prompts (dress)
+            if c == "dress" and kk == "waist_fit":
+                waist_fit_prompts = {
+                    "cinched": (
+                        "MODIFICATION — WAIST: CINCHED (MUST BE VISUALLY OBVIOUS):\n"
+                        "Add a clearly defined waist cinch at the model's NATURAL WAIST (narrowest torso point). "
+                        "The garment MUST pull IN dramatically, creating a visible hourglass silhouette. "
+                        "The fabric above (bust) and below (hip) flares OUT while the waist pulls IN tightly. "
+                        "The garment width at the waist should be noticeably narrower than at bust and hips. "
+                        "Think: corset-like structure, visible gathering, or built-in belt effect. "
+                        "Keep everything else identical."
+                    ),
+                    "empire": (
+                        "MODIFICATION — WAIST: EMPIRE (MUST BE VISUALLY OBVIOUS):\n"
+                        "Move the waist seam/gathering to sit DIRECTLY BELOW THE BUST LINE, not at the natural waist. "
+                        "Fabric flows freely and loosely from just under the bust to the hem — NO definition at the natural waist. "
+                        "The bodice above the empire line is fitted, everything below is loose and flowing. "
+                        "A visible horizontal seam or gathering MUST be present just under the bust. "
+                        "Keep everything else identical."
+                    ),
+                    "dropped": (
+                        "MODIFICATION — WAIST: DROPPED (MUST BE VISUALLY OBVIOUS):\n"
+                        "Move the waist definition to HIP LEVEL, several inches BELOW the natural waist. "
+                        "The garment hangs straight from shoulders to hips with NO cinching at the natural waist. "
+                        "A visible seam, belt, or gathering at the hip creates the dropped waist effect. "
+                        "Keep everything else identical."
+                    ),
+                    "relaxed": (
+                        "Set waist fit to RELAXED — no waist definition. The dress hangs straight without any cinching, "
+                        "gathering, or shaping at the waist. Loose, shift-like silhouette from shoulders to hem. "
+                        "Keep everything else identical."
+                    ),
+                }
+                out[kk] = waist_fit_prompts.get(vv, f"Set waist fit to {vv}. Keep everything else identical.")
+                continue
+
+            # Cuffs prompts (shirts)
+            if c == "shirts" and kk == "cuffs":
+                cuffs_prompts = {
+                    "buttoned": (
+                        "MODIFICATION — CUFFS: BUTTONED (MUST BE VISIBLE):\n"
+                        "The shirt sleeves MUST end with structured BUTTONED CUFFS at the wrists. "
+                        "Each cuff shows 1-2 visible buttons on a neat, crisp fabric band wrapping the wrist. "
+                        "The cuff band is approximately 2 inches wide, pressed flat, closed and buttoned. "
+                        "NO elastic gathering. Think: classic dress shirt barrel cuffs. "
+                        "Sleeves MUST be full-length reaching the wrists for cuffs to be visible. "
+                        "Keep everything else identical."
+                    ),
+                    "elastic": (
+                        "MODIFICATION — CUFFS: ELASTIC (MUST BE VISIBLE):\n"
+                        "The shirt sleeves MUST end with GATHERED/ELASTIC CUFFS at the wrists. "
+                        "Fabric is visibly gathered and bunched where elastic pulls it in at the wrist. "
+                        "Small wrinkles and folds radiate from the gathering point. NO buttons on cuffs. "
+                        "Creates a soft, bloused/puff effect just above the gathered wrist. "
+                        "Sleeves MUST be full-length reaching the wrists for cuffs to be visible. "
+                        "Keep everything else identical."
+                    ),
+                }
+                out[kk] = cuffs_prompts.get(vv, f"Set cuffs to {vv}. Keep everything else identical.")
                 continue
 
             # default — single-piece garments
