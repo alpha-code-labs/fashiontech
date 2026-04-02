@@ -1243,31 +1243,9 @@ class FlowEngine:
                 old_kv = json.loads(old_kv_raw)
             except Exception:
                 old_kv = {}
-            preserved = {}
-            cat = self._category_key((sess.get("design_category") or ""))
-            # Build set of keys that should persist across modify cycles
-            persist_keys: set = set()
-            if cat == "coord sets":
-                persist_keys = {
-                    "top_type", "bottom_type", "bottom_silhouette",
-                    "top_length", "top_cuffs",
-                    "bottom_length", "bottom_waist_rise",
-                }
-            elif cat == "skirt":
-                persist_keys = {"silhouette", "length", "waist_rise"}
-            elif cat == "dress":
-                persist_keys = {"length", "waist_fit"}
-            elif cat == "top":
-                persist_keys = {"length"}
-            elif cat == "pants":
-                persist_keys = {"length", "waist_rise"}
-            elif cat == "jumpsuit":
-                persist_keys = {"length", "waist_definition"}
-            elif cat == "shirts":
-                persist_keys = {"length", "cuffs"}
-            for key in persist_keys:
-                if old_kv.get(key):
-                    preserved[key] = old_kv[key]
+            # Preserve ALL previous modifications so Gemini keeps them
+            # when applying the next change (e.g. elastic waistband + cropped length)
+            preserved = {k: v for k, v in old_kv.items() if v}
             init_kv = json.dumps(preserved) if preserved else "{}"
             await self.store.set_fields(
                 wa_id,
