@@ -591,6 +591,7 @@ class FlowEngine:
                 "design_fabric": "",
                 "design_color": "",
                 "generated_image": "",
+                "generated_image_front": "",
                 "flow": "design",
                 "steps": "",
                 # modify fields
@@ -1193,8 +1194,8 @@ class FlowEngine:
             return
 
         # Retrieve pending session fields stored during generation
-        # Only keep print ref for Option 1 (base) — variations may not have the print
-        print_ref = (sess.get("design_print_ref_pending") or "").strip() if pick_num == "1" else ""
+        # Keep print ref for ALL options — variations are based on the same print
+        print_ref = (sess.get("design_print_ref_pending") or "").strip()
         mod_kv_init = (sess.get("design_mod_kv_pending") or "{}").strip()
 
         await self.store.reset_mod_count(wa_id)
@@ -2550,7 +2551,8 @@ class FlowEngine:
             if pattern_image_bytes:
                 pattern_mode = "preserve"
                 # Length modifications have print handling baked into the length prompt — skip separate key
-                is_length_mod = "length" in kv
+                current_field = (sess.get("design_mod_field") or "").strip().lower()
+                is_length_mod = "length" in current_field  # matches length, top_length, bottom_length
                 if not is_length_mod:
                     modifications["print_preservation"] = (
                         "The garment currently has a print/pattern on it (visible in the base image). "
@@ -2606,6 +2608,7 @@ class FlowEngine:
                             notes="",
                             size="",
                         ),
+                        pattern_image_bytes=pattern_image_bytes,
                     )
             else:
                 rel_image_path = await self.gemini.generate_image_only(
@@ -2618,8 +2621,9 @@ class FlowEngine:
                         color=(kv.get("color") or base_color),
                         notes="",
                         size="",
-                ),
-            )
+                    ),
+                    pattern_image_bytes=pattern_image_bytes,
+                )
         except Exception as e:
             print(f"[regenerate_design] ALL PATHS FAILED wa_id={wa_id} error={repr(e)}")
             await self.wa.send_text(wa_id, ERROR_MSG_HIGH_VOLUME)
@@ -2627,8 +2631,9 @@ class FlowEngine:
 
         # Count already incremented atomically by try_reserve_modification
 
-        # Determine if this was a back-facing modification
-        is_back_mod = "back_detail" in kv
+        # Determine if this was a back-facing modification (check current field, not accumulated KV)
+        current_field = (sess.get("design_mod_field") or "").strip().lower()
+        is_back_mod = current_field in {"back_detail", "top_back_detail", "bottom_back_detail"}
 
         result_fields: Dict[str, str] = {
             "generated_image": rel_image_path,
