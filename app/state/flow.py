@@ -2657,6 +2657,13 @@ class FlowEngine:
         if not is_back_mod:
             result_fields["generated_image_front"] = rel_image_path
 
+        # After a back modification, clear the back_detail key from accumulated KV
+        # so the "Show from BACK view" instruction doesn't leak into future modifications
+        if is_back_mod:
+            back_keys = {"back_detail", "top_back_detail", "bottom_back_detail"}
+            cleaned_kv = {k: v for k, v in kv.items() if k not in back_keys}
+            result_fields["design_mod_kv"] = json.dumps(cleaned_kv)
+
         # Persist print reference if a new print was applied
         if save_print_ref:
             result_fields["design_print_ref"] = save_print_ref
