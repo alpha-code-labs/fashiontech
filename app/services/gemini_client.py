@@ -554,11 +554,13 @@ class GeminiClient:
         variation: str,
         index: int,
         pattern_image_bytes: Optional[bytes] = None,
+        color_override: Optional[str] = None,
     ) -> Optional[str]:
         """
         Generate a NEW design INSPIRED by the reference image.
         If pattern_image_bytes is provided, include the pattern as a reference
         and add print preservation instructions to the prompt.
+        If color_override is provided, use it instead of brief.color for the Color line.
         Returns relative image path on success, None on failure.
         """
         try:
@@ -576,6 +578,8 @@ class GeminiClient:
                     "\n"
                 )
 
+            color_line = color_override if color_override else brief.color
+
             prompt = (
                 "Create a high-quality fashion product-style image.\n"
                 "Subject: a South Asian / Indian-looking female model wearing a women's western wear outfit.\n"
@@ -586,7 +590,7 @@ class GeminiClient:
                 f"Occasion: {brief.occasion}\n"
                 f"Category: {brief.category}\n"
                 f"Fabric: {brief.fabric}\n"
-                f"Color: {brief.color}\n"
+                f"Color: {color_line}\n"
                 f"Style notes: {brief.notes}\n"
                 f"{pattern_instruction}"
                 "\n"

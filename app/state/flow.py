@@ -1077,18 +1077,21 @@ class FlowEngine:
                     "print/pattern motifs on the new color. Only change the base fabric color."
                     if has_print else ""
                 )
+                # (variation_text, pattern_bytes_or_None, color_override_or_None)
                 variations = [
                     (
                         f"Color twist: Keep the exact same style, silhouette and structural details "
-                        f"of this {category}, but change the color to something complementary "
-                        f"(NOT {color}). Keep {fabric} fabric.{color_twist_print_note}",
+                        f"of this {category}, but change the base fabric color to a distinctly different "
+                        f"complementary color (NOT {color}). Keep {fabric} fabric.{color_twist_print_note}",
                         pattern_bytes,  # pass pattern for color twist
+                        f"CHANGE to a new complementary color — must NOT be {color}",
                     ),
                     (
                         f"Silhouette twist: Keep the same {color} color and {fabric} fabric, "
                         f"but change the silhouette or a key structural element "
                         f"(e.g. neckline, sleeve length, hemline, or fit).",
                         None,  # no pattern for style twist
+                        None,  # use original color
                     ),
                 ]
 
@@ -1097,8 +1100,9 @@ class FlowEngine:
                         wa_id=wa_id, brief=brief, ref_bytes=ref_bytes,
                         variation=var, index=i + 2,
                         pattern_image_bytes=pat,
+                        color_override=col_override,
                     )
-                    for i, (var, pat) in enumerate(variations[:slots_reserved - 1])
+                    for i, (var, pat, col_override) in enumerate(variations[:slots_reserved - 1])
                 ]
 
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -2774,10 +2778,20 @@ class FlowEngine:
             size="",
         )
 
+        # (variation_text, color_override_or_None)
         variations = [
-            f"Closest match: Keep the same {color} color and similar style/silhouette. Stay very close to the reference.",
-            f"Color twist: Keep the same style and silhouette, but change the color to something complementary (NOT {color}).",
-            "Silhouette twist: Keep the same color palette, but change the silhouette or key structural element (e.g. neckline, length, or fit).",
+            (
+                f"Closest match: Keep the same {color} color and similar style/silhouette. Stay very close to the reference.",
+                None,
+            ),
+            (
+                f"Color twist: Keep the same style and silhouette, but change the base fabric color to a distinctly different complementary color (NOT {color}).",
+                f"CHANGE to a new complementary color — must NOT be {color}",
+            ),
+            (
+                "Silhouette twist: Keep the same color palette, but change the silhouette or key structural element (e.g. neckline, length, or fit).",
+                None,
+            ),
         ]
 
         tasks = [
@@ -2787,8 +2801,9 @@ class FlowEngine:
                 ref_bytes=ref_bytes,
                 variation=var,
                 index=i + 1,
+                color_override=col_override,
             )
-            for i, var in enumerate(variations)
+            for i, (var, col_override) in enumerate(variations)
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
