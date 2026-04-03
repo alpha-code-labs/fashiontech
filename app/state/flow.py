@@ -592,6 +592,7 @@ class FlowEngine:
                 "design_color": "",
                 "generated_image": "",
                 "generated_image_front": "",
+                "generated_image_original": "",
                 "flow": "design",
                 "steps": "",
                 # modify fields
@@ -1123,6 +1124,7 @@ class FlowEngine:
             await self.store.set_fields(wa_id, {
                 "generated_image": base_rel_path,
                 "generated_image_front": base_rel_path,
+                "generated_image_original": base_rel_path,
                 "state": STATE_DESIGN_POST,
                 "design_mod_field": "", "design_mod_print": "",
                 "design_mod_kv": mod_kv_init,
@@ -1213,6 +1215,7 @@ class FlowEngine:
             {
                 "generated_image": selected_path,
                 "generated_image_front": selected_path,
+                "generated_image_original": selected_path,
                 "state": STATE_DESIGN_POST,
                 "design_mod_field": "",
                 "design_mod_print": "",
@@ -2504,8 +2507,16 @@ class FlowEngine:
         mod_print_media_id = (sess.get("design_mod_print") or "").strip()
         persistent_print_ref = (sess.get("design_print_ref") or "").strip()
 
-        # Always use the front image as base for modifications
-        base_image_rel_path = (sess.get("generated_image_front") or sess.get("generated_image") or "").strip()
+        # Always use the ORIGINAL image as base for modifications.
+        # This ensures each modification starts from the clean design — Gemini
+        # applies all accumulated KV changes at once, so it never has to "undo"
+        # a previous modification (e.g. crop → regular length).
+        base_image_rel_path = (
+            sess.get("generated_image_original")
+            or sess.get("generated_image_front")
+            or sess.get("generated_image")
+            or ""
+        ).strip()
 
         # KV-based modifications
         kv = self._safe_load_kv(sess)
@@ -2693,6 +2704,7 @@ class FlowEngine:
                 "design_color": "",
                 "generated_image": "",
                 "generated_image_front": "",
+                "generated_image_original": "",
                 "design_mod_field": "",
                 "design_mod_print": "",
                 "design_mod_kv": "{}",
@@ -2865,6 +2877,7 @@ class FlowEngine:
             {
                 "generated_image": selected_path,
                 "generated_image_front": selected_path,
+                "generated_image_original": selected_path,
                 "state": STATE_DESIGN_POST,
                 "design_mod_field": "",
                 "design_mod_print": "",
