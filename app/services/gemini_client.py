@@ -210,6 +210,23 @@ class GeminiClient:
             else ""
         )
 
+        # Category-specific garment description
+        if cat_lower == "dress":
+            garment_desc = (
+                "\n"
+                "GARMENT DESCRIPTION (CRITICAL — the generated garment MUST match this):\n"
+                "- This is a DRESS — a single one-piece garment that covers the torso and extends down over the legs.\n"
+                "- It must NOT be a separate top + skirt combo. It is one continuous piece from shoulders to hem.\n"
+                "- Default silhouette: A-line (fitted at bodice, gently flaring from the waist).\n"
+                "- Default neckline: round neck.\n"
+                "- Default sleeves: short sleeves.\n"
+                "- Default length: midi (hemline between knee and mid-calf).\n"
+                "- The dress must be clearly recognizable as a dress, not a top, not a jumpsuit.\n"
+                "\n"
+            )
+        else:
+            garment_desc = ""
+
         return (
             "Create a high-quality fashion product-style image.\n"
             "Subject: a South Asian / Indian-looking female model wearing a women's western wear outfit.\n"
@@ -223,6 +240,7 @@ class GeminiClient:
             f"{print_rules}"
             f"{top_rule}"
             f"{bottom_rule}"
+            f"{garment_desc}"
             f"Occasion: {brief.occasion}\n"
             f"Category: {brief.category}\n"
             + (f"Fabric: {brief.fabric} (applies ONLY to the {brief.category} — pants must be plain black)\n" if is_top_only else f"Fabric: {brief.fabric}\n")
