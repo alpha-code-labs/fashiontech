@@ -1071,26 +1071,23 @@ class FlowEngine:
                 ref_bytes = None
 
             if ref_bytes:
-                has_print = bool(pattern_bytes)
-                color_twist_print_note = (
-                    " IMPORTANT: The garment has a print/pattern — you MUST preserve the exact same "
-                    "print/pattern motifs on the new color. Only change the base fabric color."
-                    if has_print else ""
-                )
-                # (variation_text, pattern_bytes_or_None, color_override_or_None)
+                # (variation_text, color_override_or_None)
+                # NOTE: Do NOT pass pattern_image_bytes for variations.
+                # The base image already shows the print — passing a separate
+                # pattern reference + preservation instructions makes Gemini
+                # too conservative and it reproduces the same image.
                 variations = [
                     (
                         f"Color twist: Keep the exact same style, silhouette and structural details "
                         f"of this {category}, but change the base fabric color to a distinctly different "
-                        f"complementary color (NOT {color}). Keep {fabric} fabric.{color_twist_print_note}",
-                        pattern_bytes,  # pass pattern for color twist
+                        f"complementary color (NOT {color}). Keep {fabric} fabric. "
+                        f"If the garment has a print or pattern, keep the same print motifs but on the new color.",
                         f"CHANGE to a new complementary color — must NOT be {color}",
                     ),
                     (
                         f"Silhouette twist: Keep the same {color} color and {fabric} fabric, "
                         f"but change the silhouette or a key structural element "
                         f"(e.g. neckline, sleeve length, hemline, or fit).",
-                        None,  # no pattern for style twist
                         None,  # use original color
                     ),
                 ]
@@ -1099,10 +1096,9 @@ class FlowEngine:
                     self.gemini.generate_inspired_image(
                         wa_id=wa_id, brief=brief, ref_bytes=ref_bytes,
                         variation=var, index=i + 2,
-                        pattern_image_bytes=pat,
                         color_override=col_override,
                     )
-                    for i, (var, pat, col_override) in enumerate(variations[:slots_reserved - 1])
+                    for i, (var, col_override) in enumerate(variations[:slots_reserved - 1])
                 ]
 
                 results = await asyncio.gather(*tasks, return_exceptions=True)
