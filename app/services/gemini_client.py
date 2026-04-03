@@ -362,7 +362,6 @@ class GeminiClient:
             "\n"
             f"{pattern_line}\n"
             "\n"
-            + (f"FINAL REMINDER — COLOR: The garment MUST remain {brief.color.upper()}. Do NOT shift the garment color to match any pattern reference image.\n\n" if has_pattern and is_concrete_color else "")
             + "Output: ONE single edited image, photorealistic."
         )
 
