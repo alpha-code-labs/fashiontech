@@ -1155,6 +1155,7 @@ class FlowEngine:
         self.logger.log_step(wa_id, "DESIGN_3_OPTIONS_SENT")
 
         await self.wa.send_buttons(wa_id, "Which one do you love? 💖", buttons)
+        await self.wa.send_buttons(wa_id, "Or start fresh:", [("DESIGN_ANOTHER", "Design Another")])
 
     async def _send_design_post(self, wa_id: str) -> None:
         sess = await self.store.get(wa_id) or {}
@@ -1188,6 +1189,10 @@ class FlowEngine:
 
     async def handle_design_pick_option(self, wa_id: str, bid: str) -> None:
         await self.store.touch(wa_id)
+
+        if bid == "DESIGN_ANOTHER":
+            await self.send_start_menu(wa_id)
+            return
 
         if not bid or not bid.startswith("DESIGN_PICK_"):
             await self.send_start_menu(wa_id)
