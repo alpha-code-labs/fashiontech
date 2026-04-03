@@ -357,14 +357,6 @@ class GeminiClient:
             + color_rule
             + "- Do not add text, logos, watermarks.\n"
             "\n"
-            "Base outfit context:\n"
-            f"- Occasion: {brief.occasion}\n"
-            f"- Category: {brief.category}\n"
-            + (f"- Fabric: {brief.fabric} (applies ONLY to the {brief.category} — pants stay plain black)\n" if is_top_only_m else f"- Fabric: {brief.fabric}\n")
-            + color_ctx
-            + (f"- Size: {brief.size}\n" if brief.size else "")
-            + (f"- Vibe notes: {vibe}\n" if brief.notes else "")
-            + "\n"
             "Requested modifications (APPLY THESE FULLY):\n"
             f"{changes}\n"
             "\n"
