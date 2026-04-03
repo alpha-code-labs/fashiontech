@@ -398,6 +398,9 @@ class GeminiClient:
         has_pattern = bool(pattern_image_bytes)
         prompt = self._prompt(brief, has_pattern=has_pattern)
 
+        print(f"[GEMINI generate_image_only] wa_id={wa_id} has_pattern={has_pattern}")
+        print(f"[GEMINI generate_image_only] FULL PROMPT:\n{prompt}")
+
         if pattern_image_bytes:
             pattern_mime = self._guess_mime(pattern_image_bytes)
             parts = [
@@ -467,6 +470,11 @@ class GeminiClient:
                 )
 
         prompt = self._modify_prompt(brief, modifications, has_pattern=has_pattern, pattern_mode=pattern_mode)
+
+        print(f"[GEMINI generate_modified_image] wa_id={wa_id} base_image={base_image_rel_path} has_pattern={has_pattern} pattern_mode={pattern_mode}")
+        print(f"[GEMINI generate_modified_image] brief.color={brief.color} brief.category={brief.category} brief.fabric={brief.fabric}")
+        print(f"[GEMINI generate_modified_image] modifications={modifications}")
+        print(f"[GEMINI generate_modified_image] FULL PROMPT:\n{prompt}")
 
         # Order: base image → pattern reference → text prompt
         # Text prompt LAST so text instructions carry the most weight
@@ -650,6 +658,9 @@ class GeminiClient:
                 "\n"
                 "Output: ONE single image. Photorealistic."
             )
+
+            print(f"[GEMINI generate_inspired_image] wa_id={wa_id} index={index} has_pattern={bool(pattern_image_bytes)} color_override={color_override}")
+            print(f"[GEMINI generate_inspired_image] FULL PROMPT:\n{prompt}")
 
             parts = [
                 types.Part.from_bytes(data=ref_bytes, mime_type=ref_mime),

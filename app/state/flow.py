@@ -1212,6 +1212,9 @@ class FlowEngine:
         print_ref = (sess.get("design_print_ref_pending") or "").strip()
         mod_kv_init = (sess.get("design_mod_kv_pending") or "{}").strip()
 
+        print(f"[PICK OPTION] wa_id={wa_id} picked={pick_num} selected_path={selected_path} print_ref={print_ref} mod_kv_init={mod_kv_init}")
+        print(f"[PICK OPTION] design_color(unchanged)={sess.get('design_color', '')} design_category={sess.get('design_category', '')}")
+
         await self.store.reset_mod_count(wa_id)
         await self.store.set_fields(
             wa_id,
@@ -2584,6 +2587,14 @@ class FlowEngine:
             size="",
         )
 
+        print(f"[MODIFY SESSION] wa_id={wa_id} design_color={base_color} design_category={base_cat} design_fabric={base_fabric}")
+        print(f"[MODIFY SESSION] generated_image_front={sess.get('generated_image_front', '')} generated_image={sess.get('generated_image', '')}")
+        print(f"[MODIFY SESSION] base_image_rel_path={base_image_rel_path}")
+        print(f"[MODIFY SESSION] design_mod_field={sess.get('design_mod_field', '')} design_mod_kv={sess.get('design_mod_kv', '{}')}")
+        print(f"[MODIFY SESSION] design_print_ref={persistent_print_ref} design_mod_print={mod_print_media_id}")
+        print(f"[MODIFY SESSION] kv={kv} modifications={modifications}")
+        print(f"[MODIFY SESSION] pattern_mode={pattern_mode} has_pattern={bool(pattern_image_bytes)}")
+
         await self.store.set_fields(wa_id, {"state": STATE_DESIGN_POST})
         await self.store.touch(wa_id)
 
@@ -2672,6 +2683,8 @@ class FlowEngine:
         new_color = kv.get("color") or kv.get("color_top") or ""
         if new_color:
             result_fields["design_color"] = new_color
+
+        print(f"[MODIFY RESULT] wa_id={wa_id} result_fields={result_fields}")
 
         await self.store.set_fields(wa_id, result_fields)
         await self.store.touch(wa_id)
