@@ -1515,10 +1515,10 @@ class FlowEngine:
 
             # Upper fields — mapped from individual garment types
             upper_fields_map = {
-                "shirt":  [("top_sleeves", "Top sleeves"), ("top_collar_type", "Top collar"), ("top_hem", "Top hem"), ("top_length", "Top length")],
-                "crop":   [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_back_detail", "Top back detail"), ("top_length", "Top length")],
-                "tee":    [("top_sleeve_length", "Top sleeve length"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_length", "Top length")],
-                "blouse": [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_front_detail", "Top front detail"), ("top_back_detail", "Top back detail"), ("top_length", "Top length")],
+                "shirt":  [("top_sleeves", "Top sleeves"), ("top_collar_type", "Top collar"), ("top_hem", "Top hem")],
+                "crop":   [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_back_detail", "Top back detail")],
+                "tee":    [("top_sleeve_length", "Top sleeve length"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem")],
+                "blouse": [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_front_detail", "Top front detail"), ("top_back_detail", "Top back detail")],
             }
             base += upper_fields_map.get(top_type, [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline")])
 
@@ -1530,8 +1530,8 @@ class FlowEngine:
             skirt_fields.append(("bottom_hem_shape", "Bottom hem shape"))
 
             lower_fields_map = {
-                "pants":  [("bottom_waistband_style", "Bottom waistband"), ("bottom_length", "Bottom length"), ("bottom_waist_rise", "Bottom waist rise")],
-                "skirt":  skirt_fields + [("bottom_length", "Bottom length"), ("bottom_waist_rise", "Bottom waist rise")],
+                "pants":  [("bottom_waistband_style", "Bottom waistband")],
+                "skirt":  skirt_fields,
                 "shorts": [],
             }
             base += lower_fields_map.get(bottom_type, [])
