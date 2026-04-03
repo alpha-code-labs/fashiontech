@@ -96,7 +96,7 @@ class GeminiClient:
         print(f"[GeminiClient] initialized with {len(keys)} API key(s)")
 
         # You can override in env/config if you want
-        self.model = getattr(settings, "GEMINI_IMAGE_MODEL", None) or "gemini-2.0-flash-exp"
+        self.model = getattr(settings, "GEMINI_IMAGE_MODEL", None) or "gemini-3.1-flash-image-preview"
         self.text_model = getattr(settings, "GEMINI_TEXT_MODEL", None) or "gemini-2.0-flash"
 
         # where to save images so your existing /static mount serves them

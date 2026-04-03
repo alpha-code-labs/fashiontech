@@ -158,7 +158,7 @@ jobs:
                                   {"name": "SESSION_TIMEOUT_SECONDS", "value": "1800"},
                                   {"name": "CHECKER_INTERVAL_SECONDS", "value": "5"},
                                   {"name": "GEMINI_TEXT_MODEL", "value": "gemini-2.0-flash"},
-                                  {"name": "GEMINI_IMAGE_MODEL", "value": "gemini-2.5-flash-image"},
+                                  {"name": "GEMINI_IMAGE_MODEL", "value": "gemini-3.1-flash-image-preview"},
                                   {"name": "WHATSAPP_TOKEN", "secretRef": "whatsapp-token"},
                                   {"name": "GEMINI_API_KEY", "secretRef": "gemini-api-key"},
                                   {"name": "GEMINI_API_KEYS", "secretRef": "gemini-api-keys"},
