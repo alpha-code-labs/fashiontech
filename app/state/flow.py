@@ -1515,7 +1515,7 @@ class FlowEngine:
 
             # Upper fields — mapped from individual garment types
             upper_fields_map = {
-                "shirt":  [("top_sleeves", "Top sleeves"), ("top_collar_type", "Top collar"), ("top_hem", "Top hem"), ("top_length", "Top length"), ("top_cuffs", "Top cuffs")],
+                "shirt":  [("top_sleeves", "Top sleeves"), ("top_collar_type", "Top collar"), ("top_hem", "Top hem"), ("top_length", "Top length")],
                 "crop":   [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_back_detail", "Top back detail"), ("top_length", "Top length")],
                 "tee":    [("top_sleeve_length", "Top sleeve length"), ("top_neckline", "Top neckline"), ("top_hem", "Top hem"), ("top_length", "Top length")],
                 "blouse": [("top_sleeves", "Top sleeves"), ("top_neckline", "Top neckline"), ("top_front_detail", "Top front detail"), ("top_back_detail", "Top back detail"), ("top_length", "Top length")],
