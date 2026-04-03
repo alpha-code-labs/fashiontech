@@ -137,12 +137,22 @@ class GeminiClient:
     def _prompt(self, brief: DesignBrief, has_pattern: bool = False) -> str:
         vibe = brief.notes.strip() if brief.notes else "premium, stylish, modern"
 
+        is_top_only_cat = (brief.category or "").lower() in ("top", "shirts", "t-shirts", "blouse")
+        is_bottom_only_cat = (brief.category or "").lower() in ("skirt", "pants")
+
         if has_pattern:
+            if is_top_only_cat:
+                print_target = f"onto the {brief.category.upper()} ONLY — do NOT apply the print to the pants. The pants must stay plain solid BLACK"
+            elif is_bottom_only_cat:
+                print_target = f"onto the {brief.category.upper()} ONLY — do NOT apply the print to the top. The top must stay plain solid BLACK"
+            else:
+                print_target = f"onto the {brief.color.upper()} garment fabric"
+
             print_rules = (
                 "\n"
                 "PRINT/PATTERN RULE (MUST FOLLOW):\n"
                 "- A print/pattern reference image is provided.\n"
-                f"- Apply ONLY the motif/pattern shapes from the reference image onto the {brief.color.upper()} garment fabric.\n"
+                f"- Apply ONLY the motif/pattern shapes from the reference image {print_target}.\n"
                 "- Keep everything else clean: no logos, no text, no brand marks.\n"
                 "- Do NOT invent additional unrelated patterns beyond the reference.\n"
                 "\n"
@@ -215,9 +225,9 @@ class GeminiClient:
             f"{bottom_rule}"
             f"Occasion: {brief.occasion}\n"
             f"Category: {brief.category}\n"
-            f"Fabric: {brief.fabric}\n"
-            f"Color: {brief.color}\n"
-            "Fit: regular (not loose, not tight — standard body-skimming fit).\n"
+            + (f"Fabric: {brief.fabric} (applies ONLY to the {brief.category} — pants must be plain black)\n" if is_top_only else f"Fabric: {brief.fabric}\n")
+            + (f"Color: {brief.color} (applies ONLY to the {brief.category} — pants must be plain black)\n" if is_top_only else f"Color: {brief.color}\n")
+            + "Fit: regular (not loose, not tight — standard body-skimming fit).\n"
             + (f"Size: {brief.size}\n" if brief.size else "")
             + (f"Vibe notes: {vibe}\n" if brief.notes else "")
             + "Output: ONE single image. Photorealistic."
@@ -265,9 +275,15 @@ class GeminiClient:
 
         # If color is a concrete value, anchor it; otherwise omit the constraint
         is_concrete_color = brief.color and "best suits" not in brief.color.lower()
+        cat_lower_m = (brief.category or "").lower()
+        is_top_only_m = cat_lower_m in ("top", "shirts", "t-shirts", "blouse")
         if is_concrete_color:
-            color_rule = f"- Unless a color change is explicitly requested, keep the garment color as {brief.color}.\n"
-            color_ctx = f"- Color (current / base): {brief.color}\n"
+            if is_top_only_m:
+                color_rule = f"- Unless a color change is explicitly requested, keep the {brief.category} color as {brief.color}. The pants must stay plain black.\n"
+                color_ctx = f"- Color (current / base): {brief.color} (applies ONLY to the {brief.category} — pants stay plain black)\n"
+            else:
+                color_rule = f"- Unless a color change is explicitly requested, keep the garment color as {brief.color}.\n"
+                color_ctx = f"- Color (current / base): {brief.color}\n"
         else:
             color_rule = "- Unless a color change is explicitly requested, keep the current garment color as seen in the image.\n"
             color_ctx = "- Color: as shown in the original image\n"
@@ -326,7 +342,7 @@ class GeminiClient:
             "Base outfit context:\n"
             f"- Occasion: {brief.occasion}\n"
             f"- Category: {brief.category}\n"
-            f"- Fabric: {brief.fabric}\n"
+            + (f"- Fabric: {brief.fabric} (applies ONLY to the {brief.category} — pants stay plain black)\n" if is_top_only_m else f"- Fabric: {brief.fabric}\n")
             + color_ctx
             + (f"- Size: {brief.size}\n" if brief.size else "")
             + (f"- Vibe notes: {vibe}\n" if brief.notes else "")
