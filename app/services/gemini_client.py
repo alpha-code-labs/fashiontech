@@ -186,6 +186,20 @@ class GeminiClient:
             else ""
         )
 
+        # For top-only categories, force plain black pants
+        is_top_only = cat_lower in ("top", "shirts", "t-shirts", "blouse")
+        bottom_rule = (
+            "\n"
+            "LOWER BODY RULE (CRITICAL):\n"
+            "- The model MUST wear plain solid BLACK pants or leggings on the lower body.\n"
+            "- The pants must be simple — no prints, no patterns, no embellishments, no design details.\n"
+            "- The focus of this image is ONLY the " + brief.category + ". The pants are just a neutral pairing.\n"
+            "- Do NOT apply the garment's color, fabric, or print to the pants. The pants stay plain black.\n"
+            "\n"
+            if is_top_only
+            else ""
+        )
+
         return (
             "Create a high-quality fashion product-style image.\n"
             "Subject: a South Asian / Indian-looking female model wearing a women's western wear outfit.\n"
@@ -198,6 +212,7 @@ class GeminiClient:
             "Do NOT add any text, logos, watermarks, brands.\n"
             f"{print_rules}"
             f"{top_rule}"
+            f"{bottom_rule}"
             f"Occasion: {brief.occasion}\n"
             f"Category: {brief.category}\n"
             f"Fabric: {brief.fabric}\n"
@@ -281,6 +296,17 @@ class GeminiClient:
             else ""
         )
 
+        # Black pants rule for top-only categories
+        is_top_only = cat_lower in ("top", "shirts", "t-shirts", "blouse")
+        bottom_rule = (
+            "- LOWER BODY RULE (CRITICAL): The model MUST keep wearing plain solid BLACK pants or leggings. "
+            "No prints, no patterns, no embellishments on the pants. "
+            "Do NOT apply any modifications, color changes, or prints to the pants — they stay plain black. "
+            "All modifications apply ONLY to the " + brief.category + ".\n"
+            if is_top_only
+            else ""
+        )
+
         return (
             "You are editing an existing fashion image.\n"
             "\n"
@@ -292,6 +318,7 @@ class GeminiClient:
             "- Pose: front-facing, arms slightly away from body so the full garment silhouette is visible.\n"
             + framing
             + top_rule
+            + bottom_rule
             + "- Attributes NOT mentioned in the modifications should stay as they are.\n"
             + color_rule
             + "- Do not add text, logos, watermarks.\n"
