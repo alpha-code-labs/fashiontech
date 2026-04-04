@@ -1504,6 +1504,7 @@ class FlowEngine:
                 ("collar_type", "Collar type"),
                 ("hem", "Hem"),
                 ("length", "Length"),
+                ("fit", "Fit"),
                 ("cuffs", "Cuffs"),
             ]
         elif c == "coord sets":
@@ -3104,7 +3105,7 @@ class FlowEngine:
 
         sess = await self.store.get(wa_id) or {}
         c = self._category_key((sess.get("design_category") or "").strip())
-        if c in {"dress", "top", "skirt", "pants", "jumpsuit"}:
+        if c in {"dress", "top", "skirt", "pants", "jumpsuit", "shirts"}:
             # Length + category-specific options already in design modification menu
             await self._send_buy_confirm(wa_id)
         else:
@@ -3134,7 +3135,8 @@ class FlowEngine:
             # Length + waist_definition already in design modification menu
             await self._send_buy_confirm(wa_id)
         elif c == "shirts":
-            await self._send_fit_selection(wa_id)
+            # Length + fit + cuffs already in design modification menu
+            await self._send_buy_confirm(wa_id)
         else:
             await self._send_buy_confirm(wa_id)
 
