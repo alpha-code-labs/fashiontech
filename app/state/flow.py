@@ -3104,7 +3104,7 @@ class FlowEngine:
 
         sess = await self.store.get(wa_id) or {}
         c = self._category_key((sess.get("design_category") or "").strip())
-        if c in {"dress", "top", "skirt", "pants"}:
+        if c in {"dress", "top", "skirt", "pants", "jumpsuit"}:
             # Length + category-specific options already in design modification menu
             await self._send_buy_confirm(wa_id)
         else:
@@ -3131,7 +3131,8 @@ class FlowEngine:
             # Length + fit + waist_rise already in design modification menu
             await self._send_buy_confirm(wa_id)
         elif c == "jumpsuit":
-            await self._send_waist_def_selection(wa_id)
+            # Length + waist_definition already in design modification menu
+            await self._send_buy_confirm(wa_id)
         elif c == "shirts":
             await self._send_fit_selection(wa_id)
         else:
