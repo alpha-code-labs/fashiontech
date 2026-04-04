@@ -181,14 +181,15 @@ class FlowEngine:
                 "Still there? ✨ What color?",
                 "Choose",
                 sections=[{"title": "Color", "rows": [
-                    {"id": "D_CLR_BLACK", "title": "Black"},
                     {"id": "D_CLR_WHITE", "title": "White"},
-                    {"id": "D_CLR_RED", "title": "Red"},
-                    {"id": "D_CLR_NAVY", "title": "Navy Blue"},
-                    {"id": "D_CLR_BEIGE", "title": "Beige"},
-                    {"id": "D_CLR_PINK", "title": "Pink"},
-                    {"id": "D_CLR_GREEN", "title": "Emerald Green"},
-                    {"id": "D_CLR_MAROON", "title": "Maroon"},
+                    {"id": "D_CLR_BLACK", "title": "Black"},
+                    {"id": "D_CLR_BUTTER_YELLOW", "title": "Butter yellow"},
+                    {"id": "D_CLR_SAND_BEIGE", "title": "Sand beige"},
+                    {"id": "D_CLR_OLIVE_GREEN", "title": "Olive green"},
+                    {"id": "D_CLR_CLAY_BROWN", "title": "Clay brown"},
+                    {"id": "D_CLR_DEEP_OCEAN_BLUE", "title": "Deep ocean blue"},
+                    {"id": "D_CLR_TERRACOTTA_RED", "title": "Terracotta red"},
+                    {"id": "D_CLR_CORAL", "title": "Coral"},
                     {"id": "D_CLR_CUSTOM", "title": "Type my own color"},
                 ]}],
             )
@@ -732,14 +733,15 @@ class FlowEngine:
                 {
                     "title": "Color",
                     "rows": [
-                        {"id": "D_CLR_BLACK", "title": "Black"},
                         {"id": "D_CLR_WHITE", "title": "White"},
-                        {"id": "D_CLR_RED", "title": "Red"},
-                        {"id": "D_CLR_NAVY", "title": "Navy Blue"},
-                        {"id": "D_CLR_BEIGE", "title": "Beige"},
-                        {"id": "D_CLR_PINK", "title": "Pink"},
-                        {"id": "D_CLR_GREEN", "title": "Emerald Green"},
-                        {"id": "D_CLR_MAROON", "title": "Maroon"},
+                        {"id": "D_CLR_BLACK", "title": "Black"},
+                        {"id": "D_CLR_BUTTER_YELLOW", "title": "Butter yellow"},
+                        {"id": "D_CLR_SAND_BEIGE", "title": "Sand beige"},
+                        {"id": "D_CLR_OLIVE_GREEN", "title": "Olive green"},
+                        {"id": "D_CLR_CLAY_BROWN", "title": "Clay brown"},
+                        {"id": "D_CLR_DEEP_OCEAN_BLUE", "title": "Deep ocean blue"},
+                        {"id": "D_CLR_TERRACOTTA_RED", "title": "Terracotta red"},
+                        {"id": "D_CLR_CORAL", "title": "Coral"},
                         {"id": "D_CLR_CUSTOM", "title": "Type my own color"},
                     ],
                 }
@@ -761,14 +763,15 @@ class FlowEngine:
             return
 
         clr = {
-            "D_CLR_BLACK": "black",
             "D_CLR_WHITE": "white",
-            "D_CLR_RED": "red",
-            "D_CLR_NAVY": "navy blue",
-            "D_CLR_BEIGE": "beige",
-            "D_CLR_PINK": "pink",
-            "D_CLR_GREEN": "emerald green",
-            "D_CLR_MAROON": "maroon",
+            "D_CLR_BLACK": "black",
+            "D_CLR_BUTTER_YELLOW": "butter yellow",
+            "D_CLR_SAND_BEIGE": "sand beige",
+            "D_CLR_OLIVE_GREEN": "olive green",
+            "D_CLR_CLAY_BROWN": "clay brown",
+            "D_CLR_DEEP_OCEAN_BLUE": "deep ocean blue",
+            "D_CLR_TERRACOTTA_RED": "terracotta red",
+            "D_CLR_CORAL": "coral",
         }.get(bid)
         if not clr:
             await self._start_design(wa_id)
