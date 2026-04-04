@@ -108,21 +108,40 @@ def _build_html(orders: list[dict]) -> str:
                     <span class="spec-value subdued">Solid / No print</span>
                 </div>"""
 
-        # Modifications
+        # Modifications — parse mod_kv to fill in design details
         mod_kv_raw = (order.get("design_mod_kv") or "{}").strip()
         try:
             mod_kv = json.loads(mod_kv_raw) if mod_kv_raw else {}
         except Exception:
             mod_kv = {}
-        mod_block = ""
-        if mod_kv and any(v for v in mod_kv.values()):
-            mod_items = "".join(
-                f'<li><span class="mod-key">{k.replace("_", " ").title()}</span> {v}</li>'
-                for k, v in mod_kv.items()
-                if v
-            )
-            if mod_items:
-                mod_block = f'<div class="mods-section"><div class="section-title">Modifications</div><ul>{mod_items}</ul></div>'
+
+        # Merge: buy_ field takes priority, then mod_kv fallback
+        length = length or (mod_kv.get("length") or "").strip().title()
+        fit = fit or (mod_kv.get("fit") or "").strip().title()
+        fit_upper = fit_upper or (mod_kv.get("top_fit") or "").strip().title()
+        fit_lower = fit_lower or (mod_kv.get("bottom_fit") or "").strip().title()
+        waist_rise = waist_rise or (mod_kv.get("waist_rise") or "").strip().title()
+        waist_fit = waist_fit or (mod_kv.get("waist_fit") or "").strip().title()
+        waist_def = waist_def or (mod_kv.get("waist_definition") or "").strip().title()
+        cuffs = cuffs or (mod_kv.get("cuffs") or "").strip().title()
+
+        # Additional design details from mod_kv not captured in buy_ fields
+        sleeves = (mod_kv.get("sleeves") or mod_kv.get("top_sleeves") or "").strip().title()
+        neckline = (mod_kv.get("neckline") or mod_kv.get("top_neckline") or "").strip().title()
+        silhouette = (mod_kv.get("silhouette") or "").strip().title()
+        hem_shape = (mod_kv.get("hem_shape") or mod_kv.get("hem") or mod_kv.get("top_hem") or "").strip().title()
+        collar_type = (mod_kv.get("collar_type") or mod_kv.get("top_collar_type") or "").strip().title()
+        back_detail = (mod_kv.get("back_detail") or mod_kv.get("top_back_detail") or "").strip().title()
+        waistband_style = (mod_kv.get("waistband_style") or mod_kv.get("bottom_waistband_style") or "").strip().title()
+        leg_fit = (mod_kv.get("leg_fit") or "").strip().title()
+        front_detail = (mod_kv.get("top_front_detail") or "").strip().title()
+        sleeve_length = (mod_kv.get("top_sleeve_length") or "").strip().title()
+
+        # Coord-set specific lengths from mod_kv
+        top_length = (mod_kv.get("top_length") or "").strip().title()
+        bottom_length = (mod_kv.get("bottom_length") or "").strip().title()
+        bottom_waist_rise = (mod_kv.get("bottom_waist_rise") or "").strip().title()
+        top_cuffs = (mod_kv.get("top_cuffs") or "").strip().title()
 
         image_block = (
             f'<img src="{image_url}" alt="Design" loading="lazy" />'
@@ -157,20 +176,30 @@ def _build_html(orders: list[dict]) -> str:
                             <span class="spec-label">Size</span>
                             <span class="spec-value size-badge">{size}</span>
                         </div>
-                        <div class="spec-row">
-                            <span class="spec-label">Length</span>
-                            <span class="spec-value">{length or '—'}</span>
-                        </div>
+                        {'<div class="spec-row"><span class="spec-label">Length</span><span class="spec-value">' + length + '</span></div>' if length else ''}
                         {'<div class="spec-row"><span class="spec-label">Fit</span><span class="spec-value">' + fit + '</span></div>' if fit else ''}
-                        {'<div class="spec-row"><span class="spec-label">Top fit</span><span class="spec-value">' + fit_upper + '</span></div>' if fit_upper else ''}
-                        {'<div class="spec-row"><span class="spec-label">Bottom fit</span><span class="spec-value">' + fit_lower + '</span></div>' if fit_lower else ''}
+                        {'<div class="spec-row"><span class="spec-label">Sleeves</span><span class="spec-value">' + sleeves + '</span></div>' if sleeves else ''}
+                        {'<div class="spec-row"><span class="spec-label">Neckline</span><span class="spec-value">' + neckline + '</span></div>' if neckline else ''}
+                        {'<div class="spec-row"><span class="spec-label">Collar</span><span class="spec-value">' + collar_type + '</span></div>' if collar_type else ''}
+                        {'<div class="spec-row"><span class="spec-label">Silhouette</span><span class="spec-value">' + silhouette + '</span></div>' if silhouette else ''}
+                        {'<div class="spec-row"><span class="spec-label">Hem shape</span><span class="spec-value">' + hem_shape + '</span></div>' if hem_shape else ''}
+                        {'<div class="spec-row"><span class="spec-label">Back detail</span><span class="spec-value">' + back_detail + '</span></div>' if back_detail else ''}
+                        {'<div class="spec-row"><span class="spec-label">Waistband</span><span class="spec-value">' + waistband_style + '</span></div>' if waistband_style else ''}
+                        {'<div class="spec-row"><span class="spec-label">Leg fit</span><span class="spec-value">' + leg_fit + '</span></div>' if leg_fit else ''}
                         {'<div class="spec-row"><span class="spec-label">Waist rise</span><span class="spec-value">' + waist_rise + '</span></div>' if waist_rise else ''}
                         {'<div class="spec-row"><span class="spec-label">Waist fit</span><span class="spec-value">' + waist_fit + '</span></div>' if waist_fit else ''}
                         {'<div class="spec-row"><span class="spec-label">Waist def</span><span class="spec-value">' + waist_def + '</span></div>' if waist_def else ''}
                         {'<div class="spec-row"><span class="spec-label">Cuffs</span><span class="spec-value">' + cuffs + '</span></div>' if cuffs else ''}
+                        {'<div class="spec-row"><span class="spec-label">Front detail</span><span class="spec-value">' + front_detail + '</span></div>' if front_detail else ''}
+                        {'<div class="spec-row"><span class="spec-label">Sleeve length</span><span class="spec-value">' + sleeve_length + '</span></div>' if sleeve_length else ''}
+                        {'<div class="spec-row"><span class="spec-label">Top fit</span><span class="spec-value">' + fit_upper + '</span></div>' if fit_upper else ''}
+                        {'<div class="spec-row"><span class="spec-label">Top length</span><span class="spec-value">' + top_length + '</span></div>' if top_length else ''}
+                        {'<div class="spec-row"><span class="spec-label">Top cuffs</span><span class="spec-value">' + top_cuffs + '</span></div>' if top_cuffs else ''}
+                        {'<div class="spec-row"><span class="spec-label">Bottom fit</span><span class="spec-value">' + fit_lower + '</span></div>' if fit_lower else ''}
+                        {'<div class="spec-row"><span class="spec-label">Bottom length</span><span class="spec-value">' + bottom_length + '</span></div>' if bottom_length else ''}
+                        {'<div class="spec-row"><span class="spec-label">Bottom rise</span><span class="spec-value">' + bottom_waist_rise + '</span></div>' if bottom_waist_rise else ''}
                         {print_block}
                     </div>
-                    {mod_block}
                     <div class="customer-section">
                         <div class="section-title">Customer</div>
                         <div class="spec-row">
@@ -305,7 +334,7 @@ def _build_html(orders: list[dict]) -> str:
     font-size: 14px;
   }}
   .spec-label {{
-    width: 80px;
+    width: 100px;
     flex-shrink: 0;
     color: #999;
     font-size: 13px;
