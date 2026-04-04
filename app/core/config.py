@@ -27,6 +27,6 @@ class Settings:
     GEMINI_API_KEY: str = _get_env("GEMINI_API_KEY", "")
     GEMINI_API_KEYS: str = _get_env("GEMINI_API_KEYS", "")
     GEMINI_TEXT_MODEL: str = _get_env("GEMINI_TEXT_MODEL", "gemini-2.0-flash")
-    GEMINI_IMAGE_MODEL: str = _get_env("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+    GEMINI_IMAGE_MODEL: str = _get_env("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image-preview")
 
 settings = Settings()
