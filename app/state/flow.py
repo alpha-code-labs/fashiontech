@@ -3099,7 +3099,14 @@ class FlowEngine:
             return
 
         await self.store.set_fields(wa_id, {"buy_size": size})
-        await self._send_length_selection(wa_id)
+
+        sess = await self.store.get(wa_id) or {}
+        c = self._category_key((sess.get("design_category") or "").strip())
+        if c == "dress":
+            # Length + waist_fit already handled in design modification menu
+            await self._send_buy_confirm(wa_id)
+        else:
+            await self._send_length_selection(wa_id)
 
     # ------------------------------------------------------------------
     # BUY FLOW — category-specific options (fit, waist rise, etc.)
@@ -3110,7 +3117,8 @@ class FlowEngine:
         sess = await self.store.get(wa_id) or {}
         c = self._category_key((sess.get("design_category") or "").strip())
         if c == "dress":
-            await self._send_waist_fit_selection(wa_id)
+            # Length + waist_fit already in design modification menu
+            await self._send_buy_confirm(wa_id)
         elif c == "top":
             await self._send_fit_selection(wa_id)
         elif c == "skirt":
